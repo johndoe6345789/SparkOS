@@ -1,6 +1,6 @@
 #!/bin/bash
 # SparkOS Setup Script
-# Sets up a minimal rootfs with bash and essential utilities
+# Sets up a minimal rootfs with busybox and essential utilities
 
 set -e
 
@@ -37,7 +37,7 @@ EOF
 
 # /etc/passwd
 cat > "$ROOTFS_DIR/etc/passwd" << 'EOF'
-root:x:0:0:root:/root:/bin/bash
+root:x:0:0:root:/root:/bin/sh
 EOF
 
 # /etc/group
@@ -69,15 +69,14 @@ echo "Type 'help' for available commands"
 echo ""
 EOF
 
-# Create .bashrc for root
-cat > "$ROOTFS_DIR/root/.bashrc" << 'EOF'
-# SparkOS Root Bash Configuration
+# Create .profile for root (busybox uses .profile instead of .bashrc)
+cat > "$ROOTFS_DIR/root/.profile" << 'EOF'
+# SparkOS Root Shell Configuration
 
 # Set prompt
 PS1='SparkOS:\w# '
 
 # Aliases
-alias ls='ls --color=auto'
 alias ll='ls -lah'
 alias ..='cd ..'
 
@@ -131,7 +130,7 @@ Directory Structure:
   /home             - User home directories
 
 Note: This is a minimal system. You'll need to populate /bin and /usr/bin
-with actual binaries (bash, coreutils, etc.) from a proper Linux system
+with actual binaries (busybox, etc.) from a proper Linux system
 or by cross-compiling.
 EOF
 
@@ -141,8 +140,8 @@ echo ""
 echo "Next steps:"
 echo "  1. Build init: make init"
 echo "  2. Install init: make install"
-echo "  3. Copy bash and essential binaries to rootfs/bin/"
+echo "  3. Copy busybox to rootfs/bin/ and create symlinks"
 echo "  4. Create bootable image: sudo make image"
 echo ""
-echo "Note: You'll need to populate the rootfs with actual binaries"
+echo "Note: You'll need to populate the rootfs with busybox binary"
 echo "      before creating a bootable image."

@@ -2,7 +2,7 @@
 
 A minimal Linux distribution designed for simplicity and portability. SparkOS features:
 
-- **Minimal footprint**: Barebones Linux system with bash shell
+- **Minimal footprint**: Barebones Linux system with busybox shell
 - **Portable**: dd-able disk image for USB flash drives
 - **Custom init**: Lightweight C init system
 - **Future-ready**: Designed to support Qt6/QML GUI and Wayland
@@ -12,7 +12,7 @@ A minimal Linux distribution designed for simplicity and portability. SparkOS fe
 
 The current MVP provides:
 - ✅ Custom init system written in C
-- ✅ Working bash shell environment
+- ✅ Working busybox shell environment
 - ✅ dd-able AMD64 image creation scripts
 - ✅ Minimal root filesystem structure
 - ✅ Build system (Makefile)
@@ -99,7 +99,7 @@ SparkOS/
 
 SparkOS uses a custom init system (`/sbin/init`) that:
 - Mounts essential filesystems (proc, sys, dev, tmp)
-- Spawns a bash login shell
+- Spawns a busybox sh login shell
 - Handles process reaping
 - Respawns shell on exit
 
@@ -138,14 +138,18 @@ make help
 To create a fully functional system, you need to populate the rootfs with binaries:
 
 ```bash
-# Example: Add bash (statically linked is best)
-cp /bin/bash rootfs/bin/
+# Example: Add busybox (statically linked is best)
+cp /bin/busybox rootfs/bin/
 
-# Example: Add essential utilities
-cp /bin/{ls,cat,mkdir,rm,cp,mount} rootfs/bin/
+# Create busybox symlinks for common utilities
+cd rootfs/bin
+for cmd in sh ls cat mkdir rm cp mount umount chmod chown ln; do
+    ln -sf busybox $cmd
+done
+cd ../..
 
-# Copy required libraries if not static
-ldd rootfs/bin/bash  # Check dependencies
+# If using dynamically linked busybox, copy required libraries
+ldd rootfs/bin/busybox  # Check dependencies
 # Copy libraries to rootfs/lib or rootfs/lib64
 ```
 
@@ -184,7 +188,7 @@ To create a fully bootable system, you'll also need:
 - Bootloader installation (handled by scripts)
 A single binary on top of Linux / Wayland that manages the OS, C++ CLI and Qt6/QML Full screen GUI. Android like design but more desktop orientated. A distribution that can be dd'ed to a USB flash drive. Root elevation powered by sudo. This project will need to set up a barebones distro (doesn't really need to be based on another, to keep things clean)
 
-MVP is just a to get to a bash prompt with sudo support. Install minimum on system, maybe even use busybox.
+MVP is just a to get to a shell prompt with sudo support. Install minimum on system using busybox for minimal footprint.
 
 We should try to build the system with github actions if possible.
 

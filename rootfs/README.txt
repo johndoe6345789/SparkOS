@@ -14,5 +14,5 @@ Directory Structure:
   /home             - User home directories
 
 Note: This is a minimal system. You'll need to populate /bin and /usr/bin
-with actual binaries (bash, coreutils, etc.) from a proper Linux system
+with actual binaries (busybox, etc.) from a proper Linux system
 or by cross-compiling.

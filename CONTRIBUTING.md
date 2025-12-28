@@ -39,7 +39,8 @@ SparkOS aims to be:
   - Comment complex logic
   
 - **Shell Scripts**: Follow Google Shell Style Guide
-  - Use `#!/bin/bash` shebang
+  - Use `#!/bin/sh` for POSIX-compliant scripts (preferred for busybox compatibility)
+  - Use `#!/bin/bash` only when bash-specific features are required
   - Quote variables
   - Use meaningful variable names
 
