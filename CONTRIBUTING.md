@@ -37,7 +37,7 @@ SparkOS aims to be:
   - Use tabs for indentation
   - Keep lines under 80 characters when reasonable
   - Comment complex logic
-  
+
 - **Shell Scripts**: Follow Google Shell Style Guide
   - For runtime scripts (inside rootfs): Use `#!/bin/sh` for POSIX-compliant scripts (busybox compatibility)
   - For build scripts (host system): Can use `#!/bin/bash` when bash-specific features are needed

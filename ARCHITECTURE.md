@@ -148,7 +148,7 @@ SparkOS uses a two-phase networking approach:
 - Static binaries reduce attack surface
 - Minimal running processes
 - Root filesystem can be read-only
-- Future: sudo for privilege escalation
+- Sudo for privilege escalation
 - Future: SELinux/AppArmor integration
 
 ## Performance
@@ -160,10 +160,10 @@ SparkOS uses a two-phase networking approach:
 
 ## Portability
 
-- AMD64 architecture (x86_64)
+- AMD64 (x86_64) and ARM64 (aarch64) architectures
 - dd-able disk images
 - USB flash drive ready
-- Future: ARM64 support
+- Multi-architecture Docker images
 
 ## Extension Points
 
