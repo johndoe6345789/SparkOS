@@ -58,8 +58,8 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          push: false
-          load: true
+          push: ${{ github.event_name != 'pull_request' }}
+          load: ${{ github.event_name == 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
@@ -72,6 +72,12 @@ jobs:
           IMAGE_TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n1)
           echo "Using image: $IMAGE_TAG"
           
+          # For PRs, image is loaded locally; for branches, pull from GHCR
+          if [ "${{ github.event_name }}" != "pull_request" ]; then
+            echo "Pulling image from GHCR for testing..."
+            docker pull "$IMAGE_TAG"
+          fi
+          
           # Run the container and check output
           docker run --rm "$IMAGE_TAG"
           
@@ -79,18 +85,6 @@ jobs:
           docker run --rm "$IMAGE_TAG" sh -c "test -x /sparkos/rootfs/sbin/init && echo 'Init binary is executable'"
           
           echo "Docker image test completed successfully!"
-
-      - name: Push Docker image to GHCR
-        if: github.event_name != 'pull_request'
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
 
       - name: Output image details
         if: github.event_name != 'pull_request'

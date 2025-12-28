@@ -42,9 +42,6 @@ RUN mkdir -p /sparkos/rootfs/bin \
 # Copy built init binary from builder
 COPY --from=builder /build/init /sparkos/rootfs/sbin/init
 
-# Copy setup scripts
-COPY scripts/setup_rootfs.sh /sparkos/scripts/
-
 # Set up basic configuration files
 RUN echo "sparkos" > /sparkos/rootfs/etc/hostname && \
     echo "127.0.0.1   localhost" > /sparkos/rootfs/etc/hosts && \
