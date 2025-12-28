@@ -66,6 +66,7 @@ rootfs/boot/*
 !rootfs/README.txt
 !rootfs/etc/
 !rootfs/root/
+!rootfs/home/
 
 # CodeQL
 _codeql_detected_source_root
