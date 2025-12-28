@@ -72,9 +72,14 @@ jobs:
           
           # Copy rootfs structure (without generated content)
           mkdir -p release/sparkos/rootfs
-          cp -r rootfs/etc release/sparkos/rootfs/ 2>/dev/null || true
-          cp -r rootfs/root release/sparkos/rootfs/ 2>/dev/null || true
-          cp -r rootfs/home release/sparkos/rootfs/ 2>/dev/null || true
+          # Copy rootfs directories if they exist (some may not be populated)
+          for dir in etc root home; do
+            if [ -d "rootfs/$dir" ]; then
+              cp -r "rootfs/$dir" release/sparkos/rootfs/
+            else
+              echo "Note: rootfs/$dir does not exist, skipping"
+            fi
+          done
           
           # Create README for the release
           cat > release/sparkos/RELEASE_README.md << 'EOF'

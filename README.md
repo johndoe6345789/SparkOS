@@ -216,7 +216,7 @@ SparkOS uses GitHub Actions for continuous integration and delivery:
 **Automated Builds:**
 - Docker images are automatically built on every push to main/develop branches
 - Compiled release packages are automatically built on every push to main/develop branches
-- Images and releases are also built for pull requests (testing only, not published)
+- Both are also built for pull requests (testing only, not published)
 - Tagged releases automatically create versioned Docker images and GitHub releases with compiled binaries
 - **Multi-architecture builds**: Images are built for both AMD64 (x86_64) and ARM64 (aarch64)
 
