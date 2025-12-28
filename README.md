@@ -26,6 +26,7 @@ The current MVP provides:
 - ✅ DNS configuration with public fallback servers
 - ✅ Docker container for testing
 - ✅ Automated builds and publishing to GHCR
+- ✅ Multi-architecture Docker images (AMD64 and ARM64)
 
 ## Prerequisites
 
@@ -49,19 +50,24 @@ To create bootable images (optional):
 The easiest way to test SparkOS is using the pre-built Docker image from GitHub Container Registry:
 
 ```bash
-# Pull and run the latest image
+# Pull and run the latest image (automatically selects the correct architecture)
 docker pull ghcr.io/johndoe6345789/sparkos:latest
 docker run --rm ghcr.io/johndoe6345789/sparkos:latest
 
 # Or build locally
 docker build -t sparkos:local .
 docker run --rm sparkos:local
+
+# Build for specific architecture
+docker buildx build --platform linux/amd64 -t sparkos:amd64 --load .
+docker buildx build --platform linux/arm64 -t sparkos:arm64 --load .
 ```
 
 The Docker image includes:
 - Pre-built init system binary
 - Minimal root filesystem structure
 - Test environment for validation
+- **Multi-architecture support**: Available for both AMD64 (x86_64) and ARM64 (aarch64) architectures
 
 Images are automatically built and published to [GitHub Container Registry](https://github.com/johndoe6345789/SparkOS/pkgs/container/sparkos) on every push to main branch.
 
@@ -169,16 +175,21 @@ SparkOS uses GitHub Actions for continuous integration and delivery:
 - Docker images are automatically built on every push to main/develop branches
 - Images are also built for pull requests (testing only, not published)
 - Tagged releases automatically create versioned Docker images
+- **Multi-architecture builds**: Images are built for both AMD64 (x86_64) and ARM64 (aarch64)
 
 **Container Registry:**
 - Images are published to GitHub Container Registry (GHCR)
 - Pull images: `docker pull ghcr.io/johndoe6345789/sparkos:latest`
 - Available tags: `latest`, `main`, `develop`, version tags (e.g., `v1.0.0`)
+- Docker will automatically select the correct architecture for your platform
 
 **Docker Development:**
 ```bash
 # Build Docker image locally
 docker build -t sparkos:dev .
+
+# Build for multiple architectures (requires Docker Buildx)
+docker buildx build --platform linux/amd64,linux/arm64 -t sparkos:multiarch .
 
 # Test the image
 docker run --rm sparkos:dev
