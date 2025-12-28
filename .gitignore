@@ -45,6 +45,8 @@ build/
 init
 *.img
 *.iso
+*.zip
+release/
 
 # Temporary files
 /tmp/

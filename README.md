@@ -25,6 +25,8 @@ The current MVP provides:
 - ✅ Docker container for testing
 - ✅ Automated builds and publishing to GHCR
 - ✅ Multi-architecture Docker images (AMD64 and ARM64)
+- ✅ CI/CD pipeline for compiled release packages
+- ✅ GitHub releases with pre-built binaries
 
 ## Prerequisites
 
@@ -42,6 +44,32 @@ To create bootable images (optional):
 - `mkfs.ext4` filesystem tools
 
 ## Quick Start
+
+### Using Pre-built Releases (Easiest)
+
+Download the latest release package from the [GitHub Releases page](https://github.com/johndoe6345789/SparkOS/releases):
+
+```bash
+# Download the latest release (replace VERSION with actual version, e.g., v1.0.0)
+wget https://github.com/johndoe6345789/SparkOS/releases/download/VERSION/sparkos-release.zip
+
+# Extract the package
+unzip sparkos-release.zip
+cd sparkos/
+
+# The init binary is already compiled and ready to use
+ls -lh init
+
+# Copy to your rootfs or use directly
+cp init /path/to/your/rootfs/sbin/init
+```
+
+The release package includes:
+- Pre-compiled init binary (statically linked, ready to use)
+- Complete source code
+- Build scripts and configuration
+- Root filesystem structure
+- Full documentation
 
 ### Using Docker (Recommended for Testing)
 
@@ -187,9 +215,16 @@ SparkOS uses GitHub Actions for continuous integration and delivery:
 
 **Automated Builds:**
 - Docker images are automatically built on every push to main/develop branches
-- Images are also built for pull requests (testing only, not published)
-- Tagged releases automatically create versioned Docker images
+- Compiled release packages are automatically built on every push to main/develop branches
+- Both are also built for pull requests (testing only, not published)
+- Tagged releases automatically create versioned Docker images and GitHub releases with compiled binaries
 - **Multi-architecture builds**: Images are built for both AMD64 (x86_64) and ARM64 (aarch64)
+
+**Compiled Releases:**
+- Pre-compiled init binaries are available as GitHub releases for version tags
+- Release packages include: compiled init binary, source code, build scripts, and documentation
+- Download releases from the [GitHub Releases page](https://github.com/johndoe6345789/SparkOS/releases)
+- Build artifacts are available for all workflow runs (retained for 90 days)
 
 **Container Registry:**
 - Images are published to GitHub Container Registry (GHCR)
