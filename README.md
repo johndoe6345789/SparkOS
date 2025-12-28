@@ -11,6 +11,8 @@ A minimal Linux distribution designed for simplicity and portability. SparkOS fe
 - Minimal installation by default: kernel, init system, busybox, git, and sudo
 - DNS configured with fallback to public DNS servers (8.8.8.8, 1.1.1.1)
 - WiFi and advanced networking configured later via spark CLI
+- Wired networking only at first to bootstrap system, once you have installed spark command, the spark cli will configure the rest of the system imcl wifi.
+- Next to nothing installed by default, just kernel, init system, busybox, sudo and git.
 
 ## MVP Status
 
