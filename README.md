@@ -8,7 +8,7 @@ A minimal Linux distribution designed for simplicity and portability. SparkOS fe
 - **Future-ready**: Designed to support Qt6/QML GUI and Wayland
 - **Root elevation**: Uses sudo for privilege management
 - Wired networking only at first to bootstrap system, once you have installed spark command, the spark cli will configure the rest of the system imcl wifi.
-- Next to nothing installed by default, just busybox and git.
+- Next to nothing installed by default, just kernel, init system, busybox and git.
 
 ## MVP Status
 
