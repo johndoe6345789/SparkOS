@@ -26,7 +26,7 @@ Follows the Filesystem Hierarchy Standard (FHS):
 
 ```
 /
-├── bin/          Essential user binaries (bash, ls, cp, etc.)
+├── bin/          Essential user binaries (busybox with symlinks)
 ├── sbin/         System binaries (init, mount, etc.)
 ├── etc/          System configuration files
 ├── proc/         Kernel process information (virtual)
@@ -71,7 +71,7 @@ Init System (/sbin/init) [PID 1]
     ↓
 Mount filesystems
     ↓
-Spawn bash shell
+Spawn busybox sh shell
     ↓
 User interaction
 ```
@@ -91,11 +91,12 @@ User interaction
 - **Portability**: Works on any Linux system
 - **Reliability**: No missing library issues
 
-### Why Bash?
+### Why Busybox?
 
-- **Familiar**: Most users know bash
-- **Powerful**: Full scripting capabilities
-- **Standard**: Available on virtually all Linux systems
+- **Minimal**: Single binary provides dozens of utilities
+- **Small footprint**: Typically <1MB for full feature set
+- **Efficient**: Less memory and storage overhead than full GNU coreutils
+- **Standard**: De facto standard for embedded Linux systems
 
 ## Future Architecture
 
@@ -132,7 +133,7 @@ User interaction
 ## Performance
 
 - Fast boot time (seconds, not minutes)
-- Low memory footprint (~100MB base system)
+- Low memory footprint (~50MB base system with busybox)
 - No unnecessary background services
 - Efficient init system
 

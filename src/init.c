@@ -29,7 +29,7 @@ static void spawn_shell() {
     
     if (pid == 0) {
         // Child process - exec shell
-        char *argv[] = {"/bin/bash", "--login", NULL};
+        char *argv[] = {"/bin/sh", "-l", NULL};
         char *envp[] = {
             "HOME=/root",
             "PATH=/bin:/sbin:/usr/bin:/usr/sbin",
@@ -38,11 +38,7 @@ static void spawn_shell() {
             NULL
         };
         
-        execve("/bin/bash", argv, envp);
-        
-        // If bash fails, try sh
-        char *sh_argv[] = {"/bin/sh", NULL};
-        execve("/bin/sh", sh_argv, envp);
+        execve("/bin/sh", argv, envp);
         
         perror("failed to exec shell");
         exit(1);

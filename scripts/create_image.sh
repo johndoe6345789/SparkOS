@@ -1,6 +1,8 @@
 #!/bin/bash
 # SparkOS Image Creation Script
 # Creates a bootable dd-able disk image
+# Note: This script runs on the host system and uses bash for ${BASH_SOURCE}
+# The target system uses busybox sh instead.
 
 set -e
 

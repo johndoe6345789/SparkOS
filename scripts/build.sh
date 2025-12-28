@@ -1,5 +1,7 @@
 #!/bin/bash
 # Quick build script for SparkOS development
+# Note: This script runs on the host system and uses bash for ${BASH_SOURCE}
+# The target system uses busybox sh instead.
 
 set -e
 
@@ -28,9 +30,10 @@ echo ""
 echo "Build complete!"
 echo ""
 echo "Next steps to create a full bootable system:"
-echo "  1. Populate rootfs/bin with bash and essential utilities"
-echo "     (cp /bin/bash rootfs/bin/, etc.)"
-echo "  2. Copy required libraries to rootfs/usr/lib and rootfs/lib"
+echo "  1. Copy busybox to rootfs/bin/"
+echo "     (cp /bin/busybox rootfs/bin/)"
+echo "  2. Create symlinks in rootfs/bin for common utilities"
+echo "     (cd rootfs/bin && for cmd in sh ls cat mkdir rm cp mount; do ln -sf busybox \$cmd; done)"
 echo "  3. Add a Linux kernel to rootfs/boot/vmlinuz"
 echo "  4. Run: sudo make image"
 echo ""
