@@ -5,7 +5,7 @@ Example:
 
 $ spark gui
 
-$ spart install package mypackage
+$ spark install package mypackage
 
 $ spark remove package mypackage
 
