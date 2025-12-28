@@ -132,10 +132,10 @@ fi
 echo ""
 
 # Show mounted partitions on target drive
-MOUNTED=$(lsblk -n -o MOUNTPOINT "$TARGET_DRIVE" 2>/dev/null | grep -v '^$' || true)
+MOUNTED=$(lsblk -n -o MOUNTPOINT "$TARGET_DRIVE" 2>/dev/null | grep -v '^[[:space:]]*$' || true)
 if [ -n "$MOUNTED" ]; then
     echo "WARNING: The following partitions on $TARGET_DRIVE are currently mounted:"
-    lsblk -o NAME,MOUNTPOINT "$TARGET_DRIVE" | grep -v '^$'
+    lsblk -o NAME,MOUNTPOINT "$TARGET_DRIVE"
     echo ""
     echo "Please unmount all partitions before proceeding"
     exit 1
@@ -157,12 +157,16 @@ echo "Starting installation..."
 echo ""
 
 # Unmount any partitions (just to be safe)
-for part in "$TARGET_DRIVE"*[0-9]; do
-    if mountpoint -q "$part" 2>/dev/null; then
-        echo "Unmounting $part..."
-        umount "$part" 2>/dev/null || true
-    fi
-done
+# Use lsblk to get actual partition names (works for all device types including NVMe)
+PARTITIONS=$(lsblk -ln -o NAME "$TARGET_DRIVE" 2>/dev/null | tail -n +2 | sed 's|^|/dev/|' || true)
+if [ -n "$PARTITIONS" ]; then
+    for part in $PARTITIONS; do
+        if mountpoint -q "$part" 2>/dev/null; then
+            echo "Unmounting $part..."
+            umount "$part" 2>/dev/null || true
+        fi
+    done
+fi
 
 # Write image to drive with progress
 echo "Writing SparkOS image to $TARGET_DRIVE..."
@@ -186,19 +190,25 @@ sync
 # Verify installation by reading back the first few blocks
 echo "Verifying installation..."
 VERIFY_BLOCKS=1024
-dd if="$TARGET_DRIVE" of=/tmp/sparkos_verify.img bs=512 count=$VERIFY_BLOCKS status=none 2>/dev/null
-dd if="$IMAGE_FILE" of=/tmp/sparkos_source.img bs=512 count=$VERIFY_BLOCKS status=none 2>/dev/null
+VERIFY_TMP=$(mktemp -t sparkos_verify.XXXXXXXX)
+SOURCE_TMP=$(mktemp -t sparkos_source.XXXXXXXX)
 
-if cmp -s /tmp/sparkos_verify.img /tmp/sparkos_source.img; then
+# Ensure temp files are cleaned up on exit
+trap "rm -f $VERIFY_TMP $SOURCE_TMP; cleanup" EXIT INT TERM
+
+dd if="$TARGET_DRIVE" of="$VERIFY_TMP" bs=512 count=$VERIFY_BLOCKS status=none 2>/dev/null
+dd if="$IMAGE_FILE" of="$SOURCE_TMP" bs=512 count=$VERIFY_BLOCKS status=none 2>/dev/null
+
+if cmp -s "$VERIFY_TMP" "$SOURCE_TMP"; then
     echo "✓ Verification successful - installation completed!"
 else
     echo "✗ Verification failed - installation may be corrupted"
-    rm -f /tmp/sparkos_verify.img /tmp/sparkos_source.img
+    rm -f "$VERIFY_TMP" "$SOURCE_TMP"
     exit 1
 fi
 
 # Clean up verification files
-rm -f /tmp/sparkos_verify.img /tmp/sparkos_source.img
+rm -f "$VERIFY_TMP" "$SOURCE_TMP"
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
