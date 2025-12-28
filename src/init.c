@@ -12,6 +12,12 @@
 #include <errno.h>
 #include <string.h>
 
+// Default user configuration
+#define SPARK_UID 1000
+#define SPARK_GID 1000
+#define SPARK_HOME "/home/spark"
+#define SPARK_USER "spark"
+
 static void signal_handler(int sig) {
     if (sig == SIGCHLD) {
         // Reap zombie processes
@@ -28,31 +34,31 @@ static void spawn_shell() {
     }
     
     if (pid == 0) {
-        // Child process - exec shell as spark user (uid 1000, gid 1000)
+        // Child process - exec shell as spark user
         
         // Set user and group IDs to spark user
-        if (setgid(1000) != 0) {
+        if (setgid(SPARK_GID) != 0) {
             perror("setgid failed");
             exit(1);
         }
-        if (setuid(1000) != 0) {
+        if (setuid(SPARK_UID) != 0) {
             perror("setuid failed");
             exit(1);
         }
         
         char *argv[] = {"/bin/sh", "-l", NULL};
         char *envp[] = {
-            "HOME=/home/spark",
+            "HOME=" SPARK_HOME,
             "PATH=/bin:/sbin:/usr/bin:/usr/sbin",
             "TERM=linux",
             "PS1=SparkOS$ ",
-            "USER=spark",
-            "LOGNAME=spark",
+            "USER=" SPARK_USER,
+            "LOGNAME=" SPARK_USER,
             NULL
         };
         
         // Change to home directory
-        if (chdir("/home/spark") != 0) {
+        if (chdir(SPARK_HOME) != 0) {
             perror("chdir failed");
         }
         
