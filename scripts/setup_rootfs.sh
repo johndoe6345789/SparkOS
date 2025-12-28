@@ -111,6 +111,14 @@ export EDITOR=vi
 export PAGER=less
 EOF
 
+# Create git clone script for SparkOS repository
+cat > "$ROOTFS_DIR/root/clone-sparkos.sh" << 'EOF'
+#!/bin/sh
+git clone https://github.com/johndoe6345789/SparkOS.git
+EOF
+
+chmod +x "$ROOTFS_DIR/root/clone-sparkos.sh"
+
 # Create a simple help script
 cat > "$ROOTFS_DIR/bin/sparkos-help" << 'EOF'
 #!/bin/sh
