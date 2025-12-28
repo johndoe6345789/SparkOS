@@ -79,7 +79,7 @@ int main(int argc, char *argv[]) {
     // Initialize network (wired only for bootstrap)
     printf("Initializing wired network...\n");
     if (system("/sbin/init-network 2>/dev/null") != 0) {
-        fprintf(stderr, "Warning: Network initialization failed or not available\n");
+        fprintf(stderr, "Warning: Network initialization failed - check network interface availability\n");
     }
     
     printf("Starting shell...\n");
