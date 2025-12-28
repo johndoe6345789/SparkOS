@@ -3,6 +3,8 @@ A single binary on top of Linux / Wayland that manages the OS, C++ CLI and Qt6/Q
 
 MVP is just a to get to a bash prompt with sudo support. Install minimum on system, maybe even use busybox.
 
+We should try to build the system with github actions if possible.
+
 This OS is not designed to use any of the other window managers.
 
 Example:
