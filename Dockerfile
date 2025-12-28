@@ -90,7 +90,6 @@ echo ""
 echo "To test the init system:"
 echo "  docker run --rm <image> /sparkos/rootfs/sbin/init --help"
 echo ""
-exec /bin/sh
 EOF
 
 RUN chmod +x /sparkos/test.sh
