@@ -39,3 +39,33 @@
 
 # debug information files
 *.dwo
+
+# Build artifacts
+build/
+init
+*.img
+*.iso
+
+# Temporary files
+/tmp/
+*.tmp
+*.bak
+
+# Root filesystem (generated)
+rootfs/bin/*
+rootfs/sbin/*
+rootfs/usr/bin/*
+rootfs/usr/sbin/*
+rootfs/usr/lib/*
+rootfs/usr/lib64/*
+rootfs/lib/*
+rootfs/lib64/*
+rootfs/boot/*
+
+# Keep structure but ignore contents
+!rootfs/README.txt
+!rootfs/etc/
+!rootfs/root/
+
+# CodeQL
+_codeql_detected_source_root
