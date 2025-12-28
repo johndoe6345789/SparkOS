@@ -1,0 +1,11 @@
+# SparkOS System Profile
+
+export PATH=/bin:/sbin:/usr/bin:/usr/sbin
+export PS1='SparkOS:\w\$ '
+export HOME=/root
+export TERM=linux
+
+# Welcome message
+echo "Welcome to SparkOS!"
+echo "Type 'help' for available commands"
+echo ""
