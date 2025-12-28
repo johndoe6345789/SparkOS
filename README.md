@@ -4,5 +4,10 @@ A single binary on top of Linux / Wayland that manages the OS, C++ CLI and Qt6/Q
 Example:
 
 $ spark gui
+
 $ spart install package mypackage
+
+$ spark remove package mypackage
+
 $ spark run mypackage
+
