@@ -11,6 +11,7 @@ SparkOS is designed as a minimal Linux distribution with a custom init system an
 The init system is the first process started by the kernel (PID 1). It is responsible for:
 
 - **Mounting filesystems**: proc, sys, dev, tmp
+- **Network initialization**: Bringing up wired networking via DHCP
 - **Process management**: Spawning and respawning the shell
 - **Signal handling**: Reaping zombie processes
 - **System initialization**: Setting up the initial environment
@@ -71,6 +72,8 @@ Init System (/sbin/init) [PID 1]
     ↓
 Mount filesystems
     ↓
+Initialize network (/sbin/init-network)
+    ↓
 Spawn busybox sh shell
     ↓
 User interaction
@@ -97,6 +100,23 @@ User interaction
 - **Small footprint**: Typically <1MB for full feature set
 - **Efficient**: Less memory and storage overhead than full GNU coreutils
 - **Standard**: De facto standard for embedded Linux systems
+- **Networking**: Includes DHCP client (udhcpc), ping, wget, and network tools
+
+### Networking Strategy
+
+SparkOS uses a two-phase networking approach:
+
+**Phase 1: Bootstrap (Wired Only)**
+- Wired networking configured via DHCP
+- Automatic interface detection (eth0, enp0s3, etc.)
+- DNS fallback to public servers (8.8.8.8, 1.1.1.1)
+- Enables git clone to install spark CLI
+
+**Phase 2: Full Configuration (via spark CLI)**
+- WiFi configuration
+- Advanced networking features
+- Custom DNS settings
+- Network profiles
 
 ## Future Architecture
 
@@ -112,15 +132,16 @@ User interaction
    - Minimal resource usage
    - Touch and mouse support
 
-3. **C++ CLI Tools**
+3. **Spark CLI Tools (C++)**
    - System management utilities
    - Package management
-   - Network configuration
+   - Network configuration (WiFi, VPN, etc.)
+   - GUI launcher
 
-4. **Sudo Integration**
-   - Proper privilege elevation
-   - Security policies
-   - Audit logging
+4. **Bootstrap Utilities (Included)**
+   - Git for cloning spark CLI
+   - Sudo for proper privilege elevation
+   - Busybox for core system utilities and networking
 
 ## Security Considerations
 

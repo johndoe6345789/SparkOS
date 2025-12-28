@@ -76,6 +76,12 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Warning: Failed to mount /tmp\n");
     }
     
+    // Initialize network (wired only for bootstrap)
+    printf("Initializing wired network...\n");
+    if (system("/sbin/init-network 2>/dev/null") != 0) {
+        fprintf(stderr, "Warning: Network initialization failed or not available\n");
+    }
+    
     printf("Starting shell...\n");
     printf("Welcome to SparkOS!\n");
     printf("===================\n\n");

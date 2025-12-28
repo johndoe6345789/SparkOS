@@ -7,8 +7,10 @@ A minimal Linux distribution designed for simplicity and portability. SparkOS fe
 - **Custom init**: Lightweight C init system
 - **Future-ready**: Designed to support Qt6/QML GUI and Wayland
 - **Root elevation**: Uses sudo for privilege management
-- Wired networking only at first to bootstrap system, once you have installed spark command, the spark cli will configure the rest of the system imcl wifi.
-- Next to nothing installed by default, just kernel, init system, busybox and git.
+- **Bootstrap networking**: Wired networking with DHCP for initial setup
+- Minimal installation by default: kernel, init system, busybox, git, and sudo
+- DNS configured with fallback to public DNS servers (8.8.8.8, 1.1.1.1)
+- WiFi and advanced networking configured later via spark CLI
 
 ## MVP Status
 
@@ -18,6 +20,8 @@ The current MVP provides:
 - ✅ dd-able AMD64 image creation scripts
 - ✅ Minimal root filesystem structure
 - ✅ Build system (Makefile)
+- ✅ Wired networking configuration with DHCP
+- ✅ DNS configuration with public fallback servers
 
 ## Prerequisites
 
@@ -101,6 +105,7 @@ SparkOS/
 
 SparkOS uses a custom init system (`/sbin/init`) that:
 - Mounts essential filesystems (proc, sys, dev, tmp)
+- Initializes wired networking via DHCP
 - Spawns a busybox sh login shell
 - Handles process reaping
 - Respawns shell on exit
@@ -116,6 +121,14 @@ Follows the Filesystem Hierarchy Standard (FHS):
 - `/var`: Variable data
 - `/root`: Root user home
 - `/home`: User home directories
+
+### Networking
+
+SparkOS provides wired networking for initial bootstrap:
+- **DHCP**: Automatic IP configuration via busybox udhcpc
+- **DNS**: Fallback to public DNS servers (8.8.8.8, 8.8.4.4, 1.1.1.1, 1.0.0.1)
+- **Interface**: Primary wired interface (eth0) configured automatically
+- **WiFi**: Will be configured later via spark CLI after installation
 
 ## Development
 
@@ -140,30 +153,58 @@ make help
 To create a fully functional system, you need to populate the rootfs with binaries:
 
 ```bash
-# Example: Add busybox (statically linked is best)
-cp /bin/busybox rootfs/bin/
+# Required binaries (statically linked recommended)
+# 1. Busybox - provides shell and most utilities including networking
+cp /path/to/busybox rootfs/bin/
+
+# 2. Git - for cloning spark CLI
+cp /path/to/git rootfs/bin/
+# Note: If git is dynamically linked, you'll need to copy its libraries too
+
+# 3. Sudo - for privilege elevation
+cp /path/to/sudo rootfs/bin/
 
 # Create busybox symlinks for common utilities
 cd rootfs/bin
-for cmd in sh ls cat mkdir rm cp mount umount chmod chown ln; do
+for cmd in sh ls cat mkdir rm cp mount umount chmod chown ln \
+           ip ifconfig ping wget udhcpc; do
     ln -sf busybox $cmd
 done
 cd ../..
 
-# If using dynamically linked busybox, copy required libraries
+# If using dynamically linked binaries, copy required libraries
 ldd rootfs/bin/busybox  # Check dependencies
-# Copy libraries to rootfs/lib or rootfs/lib64
+ldd rootfs/bin/git      # Check dependencies
+ldd rootfs/bin/sudo     # Check dependencies
+# Copy libraries to rootfs/lib or rootfs/lib64 as needed
+```
+
+### Testing Network Connectivity
+
+Once booted, you can test the network:
+
+```bash
+# Check interface status
+ip addr show
+
+# Test DNS resolution
+ping -c 3 google.com
+
+# Test direct IP connectivity
+ping -c 3 8.8.8.8
+
+# Download a file
+wget http://example.com/file
 ```
 
 ## Future Roadmap
 
 - [ ] Qt6/QML full screen GUI
 - [ ] Wayland compositor integration
-- [ ] C++ CLI tools
-- [ ] Package management
-- [ ] sudo integration
-- [ ] Network configuration
-- [ ] Android-like UI/UX
+- [ ] C++ CLI tools (spark command)
+- [ ] Package management via spark CLI
+- [ ] WiFi configuration via spark CLI
+- [ ] Advanced network configuration
 
 ## Contributing
 
@@ -179,15 +220,29 @@ See LICENSE file for details.
 ## Notes
 
 This is an MVP implementation. The system currently provides:
-- Basic init system
+- Basic init system with network initialization
 - Shell environment
 - Build infrastructure
 - Image creation tooling
+- Wired networking configuration
 
 To create a fully bootable system, you'll also need:
 - Linux kernel binary (`vmlinuz`)
-- Essential system binaries and libraries
+- Essential system binaries: busybox, git, sudo
+- Required libraries (if using dynamically linked binaries)
 - Bootloader installation (handled by scripts)
+
+Minimum System Requirements:
+- Kernel: Linux kernel with networking support
+- Init: Custom SparkOS init (included)
+- Shell: Busybox with networking utilities (udhcpc, ip/ifconfig, ping, wget)
+- VCS: Git (for installing spark CLI)
+- Security: Sudo (for privilege elevation)
+
+After bootstrap:
+1. Use wired network to clone spark CLI via git
+2. Use spark CLI to configure WiFi and other system features
+3. Install additional packages as needed via spark CLI
 A single binary on top of Linux / Wayland that manages the OS, C++ CLI and Qt6/QML Full screen GUI. Android like design but more desktop orientated. A distribution that can be dd'ed to a USB flash drive. Root elevation powered by sudo. This project will need to set up a barebones distro (doesn't really need to be based on another, to keep things clean)
 
 MVP is just a to get to a shell prompt with sudo support. Install minimum on system using busybox for minimal footprint.
