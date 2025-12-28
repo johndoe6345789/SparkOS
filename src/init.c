@@ -12,8 +12,6 @@
 #include <errno.h>
 #include <string.h>
 
-#define INIT_PATH "/sbin/init"
-
 static void signal_handler(int sig) {
     if (sig == SIGCHLD) {
         // Reap zombie processes

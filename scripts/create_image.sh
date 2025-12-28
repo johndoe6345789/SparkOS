@@ -10,6 +10,37 @@ IMAGE_FILE="$PROJECT_ROOT/sparkos.img"
 IMAGE_SIZE="512M"
 MOUNT_POINT="/tmp/sparkos_mount"
 ROOTFS_DIR="$PROJECT_ROOT/rootfs"
+LOOP_DEV=""
+
+# Cleanup function
+cleanup() {
+    local exit_code=$?
+    echo "Cleaning up..."
+    
+    # Unmount if mounted
+    if mountpoint -q "$MOUNT_POINT" 2>/dev/null; then
+        umount "$MOUNT_POINT" 2>/dev/null || true
+    fi
+    
+    # Remove mount point
+    if [ -d "$MOUNT_POINT" ]; then
+        rmdir "$MOUNT_POINT" 2>/dev/null || true
+    fi
+    
+    # Detach loop device
+    if [ -n "$LOOP_DEV" ] && losetup "$LOOP_DEV" &>/dev/null; then
+        losetup -d "$LOOP_DEV" 2>/dev/null || true
+    fi
+    
+    if [ $exit_code -ne 0 ]; then
+        echo "ERROR: Image creation failed"
+    fi
+    
+    exit $exit_code
+}
+
+# Set trap for cleanup on exit, interrupt, or error
+trap cleanup EXIT INT TERM
 
 echo "SparkOS Image Builder"
 echo "====================="
@@ -90,11 +121,6 @@ syslinux --install "$PART_DEV"
 dd if=/usr/lib/syslinux/mbr/mbr.bin of="$LOOP_DEV" bs=440 count=1 conv=notrunc 2>/dev/null || \
     dd if=/usr/share/syslinux/mbr.bin of="$LOOP_DEV" bs=440 count=1 conv=notrunc 2>/dev/null || \
     echo "WARNING: Could not install MBR, you may need to do this manually"
-
-echo "Cleaning up..."
-umount "$MOUNT_POINT"
-rmdir "$MOUNT_POINT"
-losetup -d "$LOOP_DEV"
 
 echo ""
 echo "SUCCESS! Bootable image created: $IMAGE_FILE"

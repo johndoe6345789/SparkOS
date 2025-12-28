@@ -4,7 +4,7 @@ A minimal Linux distribution designed for simplicity and portability. SparkOS fe
 
 - **Minimal footprint**: Barebones Linux system with bash shell
 - **Portable**: dd-able disk image for USB flash drives
-- **Custom init**: Lightweight C++ init system
+- **Custom init**: Lightweight C init system
 - **Future-ready**: Designed to support Qt6/QML GUI and Wayland
 - **Root elevation**: Uses sudo for privilege management
 
