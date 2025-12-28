@@ -20,7 +20,7 @@ FROM alpine:3.19
 
 # Install file command for testing init binary
 # file package provides the file(1) command to determine file type
-RUN apk add --no-cache file || true
+RUN apk add --no-cache file
 
 # Note: Alpine includes busybox by default
 
