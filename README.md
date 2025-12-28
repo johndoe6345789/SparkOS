@@ -102,12 +102,27 @@ sudo apt-get install syslinux parted
 # Build everything and create image
 make all
 sudo make image
-
-# Write to USB drive (CAUTION: destroys all data on target!)
-sudo dd if=sparkos.img of=/dev/sdX bs=4M status=progress
 ```
 
-Replace `/dev/sdX` with your actual USB device (e.g., `/dev/sdb`).
+### Installing to USB Drive
+
+Once you have created the `sparkos.img` file, use the installation script to write it to a USB drive or storage device:
+
+```bash
+# Use the installation script (RECOMMENDED)
+sudo ./scripts/install.sh /dev/sdX
+
+# The script will:
+# - Validate the target drive
+# - Display warnings about data destruction
+# - Require confirmation before proceeding
+# - Show progress during installation
+# - Verify successful installation
+```
+
+Replace `/dev/sdX` with your actual USB device (e.g., `/dev/sdb`, `/dev/nvme1n1`).
+
+**⚠️ WARNING**: This will permanently erase all data on the target drive!
 
 ## Project Structure
 
@@ -121,7 +136,8 @@ SparkOS/
 ├── scripts/             # Build and setup scripts
 │   ├── build.sh         # Quick build script
 │   ├── setup_rootfs.sh  # Root filesystem setup
-│   └── create_image.sh  # Image creation script
+│   ├── create_image.sh  # Image creation script
+│   └── install.sh       # Installation script for USB drives
 ├── src/                 # Source code
 │   └── init.c           # Custom init system
 ├── rootfs/              # Root filesystem (generated)
