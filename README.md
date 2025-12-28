@@ -11,8 +11,6 @@ A minimal Linux distribution designed for simplicity and portability. SparkOS fe
 - Minimal installation by default: kernel, init system, busybox, git, and sudo
 - DNS configured with fallback to public DNS servers (8.8.8.8, 1.1.1.1)
 - WiFi and advanced networking configured later via spark CLI
-- Wired networking only at first to bootstrap system, once you have installed spark command, the spark cli will configure the rest of the system imcl wifi.
-- Next to nothing installed by default, just kernel, init system, busybox, sudo and git.
 
 ## MVP Status
 
@@ -325,22 +323,3 @@ After bootstrap:
 1. Use wired network to clone spark CLI via git
 2. Use spark CLI to configure WiFi and other system features
 3. Install additional packages as needed via spark CLI
-A single binary on top of Linux / Wayland that manages the OS, C++ CLI and Qt6/QML Full screen GUI. Android like design but more desktop orientated. A distribution that can be dd'ed to a USB flash drive. Root elevation powered by sudo. This project will need to set up a barebones distro (doesn't really need to be based on another, to keep things clean)
-
-MVP is just a to get to a shell prompt with sudo support. Install minimum on system using busybox for minimal footprint.
-
-We should try to build the system with github actions if possible.
-
-This OS is not designed to use any of the other window managers.
-
-Example:
-
-$ spark gui
-
-$ spark install package mypackage
-
-$ spark remove package mypackage
-
-$ spark run mypackage
-
-Spark command will be expanded to multiple domains, gaming, server admin, you name it.
