@@ -18,6 +18,10 @@ RUN make init
 # Runtime stage - use Alpine for minimal size
 FROM alpine:3.19
 
+# Install file command for testing init binary
+# file package provides the file(1) command to determine file type
+RUN apk add --no-cache file
+
 # Note: Alpine includes busybox by default
 
 # Create minimal rootfs structure
@@ -65,7 +69,11 @@ if [ -f /sparkos/rootfs/sbin/init ]; then
     ls -lh /sparkos/rootfs/sbin/init
     echo ""
     echo "File type:"
-    file /sparkos/rootfs/sbin/init
+    if command -v file >/dev/null 2>&1; then
+        file /sparkos/rootfs/sbin/init
+    else
+        echo "  (file command not available)"
+    fi
     echo ""
     echo "Dependencies:"
     ldd /sparkos/rootfs/sbin/init 2>&1 || echo "  Static binary (no dependencies)"
