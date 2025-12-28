@@ -24,6 +24,8 @@ The current MVP provides:
 - ✅ Build system (Makefile)
 - ✅ Wired networking configuration with DHCP
 - ✅ DNS configuration with public fallback servers
+- ✅ Docker container for testing
+- ✅ Automated builds and publishing to GHCR
 
 ## Prerequisites
 
@@ -41,6 +43,27 @@ To create bootable images (optional):
 - `mkfs.ext4` filesystem tools
 
 ## Quick Start
+
+### Using Docker (Recommended for Testing)
+
+The easiest way to test SparkOS is using the pre-built Docker image from GitHub Container Registry:
+
+```bash
+# Pull and run the latest image
+docker pull ghcr.io/johndoe6345789/sparkos:latest
+docker run --rm ghcr.io/johndoe6345789/sparkos:latest
+
+# Or build locally
+docker build -t sparkos:local .
+docker run --rm sparkos:local
+```
+
+The Docker image includes:
+- Pre-built init system binary
+- Minimal root filesystem structure
+- Test environment for validation
+
+Images are automatically built and published to [GitHub Container Registry](https://github.com/johndoe6345789/SparkOS/pkgs/container/sparkos) on every push to main branch.
 
 ### Building the Init System
 
@@ -84,6 +107,9 @@ Replace `/dev/sdX` with your actual USB device (e.g., `/dev/sdb`).
 
 ```
 SparkOS/
+├── .github/             # GitHub Actions workflows
+│   └── workflows/
+│       └── docker-publish.yml  # Docker build and publish workflow
 ├── config/              # Build configuration files
 │   └── build.conf       # Build parameters
 ├── scripts/             # Build and setup scripts
@@ -97,6 +123,7 @@ SparkOS/
 │   ├── sbin/            # System binaries
 │   ├── etc/             # Configuration files
 │   └── ...              # Standard FHS directories
+├── Dockerfile           # Docker image definition
 ├── Makefile             # Build system
 └── README.md            # This file
 ```
@@ -133,6 +160,32 @@ SparkOS provides wired networking for initial bootstrap:
 - **WiFi**: Will be configured later via spark CLI after installation
 
 ## Development
+
+### CI/CD and Docker
+
+SparkOS uses GitHub Actions for continuous integration and delivery:
+
+**Automated Builds:**
+- Docker images are automatically built on every push to main/develop branches
+- Images are also built for pull requests (testing only, not published)
+- Tagged releases automatically create versioned Docker images
+
+**Container Registry:**
+- Images are published to GitHub Container Registry (GHCR)
+- Pull images: `docker pull ghcr.io/johndoe6345789/sparkos:latest`
+- Available tags: `latest`, `main`, `develop`, version tags (e.g., `v1.0.0`)
+
+**Docker Development:**
+```bash
+# Build Docker image locally
+docker build -t sparkos:dev .
+
+# Test the image
+docker run --rm sparkos:dev
+
+# Inspect the init binary
+docker run --rm sparkos:dev sh -c "ls -lh /sparkos/rootfs/sbin/init"
+```
 
 ### Building Components
 
