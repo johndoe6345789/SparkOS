@@ -28,15 +28,33 @@ static void spawn_shell() {
     }
     
     if (pid == 0) {
-        // Child process - exec shell
+        // Child process - exec shell as spark user (uid 1000, gid 1000)
+        
+        // Set user and group IDs to spark user
+        if (setgid(1000) != 0) {
+            perror("setgid failed");
+            exit(1);
+        }
+        if (setuid(1000) != 0) {
+            perror("setuid failed");
+            exit(1);
+        }
+        
         char *argv[] = {"/bin/sh", "-l", NULL};
         char *envp[] = {
-            "HOME=/root",
+            "HOME=/home/spark",
             "PATH=/bin:/sbin:/usr/bin:/usr/sbin",
             "TERM=linux",
-            "PS1=SparkOS# ",
+            "PS1=SparkOS$ ",
+            "USER=spark",
+            "LOGNAME=spark",
             NULL
         };
+        
+        // Change to home directory
+        if (chdir("/home/spark") != 0) {
+            perror("chdir failed");
+        }
         
         execve("/bin/sh", argv, envp);
         

@@ -18,7 +18,13 @@ Directory Structure:
   /usr              - User programs
   /var              - Variable data
   /root             - Root home directory
-  /home             - User home directories
+  /home/spark       - Default user home directory
+
+Default User:
+  Username: spark (UID 1000)
+  Home: /home/spark
+  Sudo: Full access without password
+  Scripts: ~/clone-sparkos.sh for installing spark CLI
 
 Network Configuration:
   /etc/network/interfaces - Wired network (DHCP)
@@ -26,10 +32,11 @@ Network Configuration:
   /sbin/init-network      - Network initialization script
 
 Bootstrap Process:
-  1. System boots with wired networking (DHCP)
-  2. Use git to clone spark CLI repository
+  1. System boots as 'spark' user with wired networking (DHCP)
+  2. Run ~/clone-sparkos.sh to install spark CLI
   3. Use spark CLI to configure WiFi and system
   4. Install additional packages via spark CLI
+  5. Use 'sudo' for any root-level operations
 
 Note: This is a minimal system. You'll need to populate /bin and /usr/bin
 with actual binaries (busybox, git, sudo) from a proper Linux system

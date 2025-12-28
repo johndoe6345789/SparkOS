@@ -1,0 +1,15 @@
+# SparkOS Sudoers Configuration
+# Allow spark user to run any command without password
+
+# Default settings
+Defaults env_reset
+Defaults secure_path="/bin:/sbin:/usr/bin:/usr/sbin"
+
+# Root can run anything
+root ALL=(ALL:ALL) ALL
+
+# Spark user can run anything without password
+spark ALL=(ALL:ALL) NOPASSWD: ALL
+
+# Include sudoers.d directory
+@includedir /etc/sudoers.d

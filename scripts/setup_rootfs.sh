@@ -19,10 +19,13 @@ echo "Creating directory structure..."
 mkdir -p "$ROOTFS_DIR"/{bin,sbin,etc,proc,sys,dev,tmp,usr/{bin,sbin,lib,lib64},var,root,home}
 mkdir -p "$ROOTFS_DIR/etc"/{init.d,network}
 mkdir -p "$ROOTFS_DIR/var"/{log,run}
+mkdir -p "$ROOTFS_DIR/home/spark"
+mkdir -p "$ROOTFS_DIR/etc/sudoers.d"
 
 # Set permissions
 chmod 1777 "$ROOTFS_DIR/tmp"
 chmod 700 "$ROOTFS_DIR/root"
+chmod 755 "$ROOTFS_DIR/home/spark"
 
 # Create basic config files
 echo "Creating configuration files..."
@@ -40,11 +43,14 @@ EOF
 # /etc/passwd
 cat > "$ROOTFS_DIR/etc/passwd" << 'EOF'
 root:x:0:0:root:/root:/bin/sh
+spark:x:1000:1000:SparkOS User:/home/spark:/bin/sh
 EOF
 
 # /etc/group
 cat > "$ROOTFS_DIR/etc/group" << 'EOF'
 root:x:0:
+spark:x:1000:
+sudo:x:27:spark
 EOF
 
 # /etc/fstab
@@ -66,6 +72,27 @@ nameserver 1.1.1.1
 nameserver 1.0.0.1
 EOF
 
+# /etc/sudoers - Sudo configuration
+cat > "$ROOTFS_DIR/etc/sudoers" << 'EOF'
+# SparkOS Sudoers Configuration
+# Allow spark user to run any command without password
+
+# Default settings
+Defaults env_reset
+Defaults secure_path="/bin:/sbin:/usr/bin:/usr/sbin"
+
+# Root can run anything
+root ALL=(ALL:ALL) ALL
+
+# Spark user can run anything without password
+spark ALL=(ALL:ALL) NOPASSWD: ALL
+
+# Include sudoers.d directory
+@includedir /etc/sudoers.d
+EOF
+
+chmod 0440 "$ROOTFS_DIR/etc/sudoers"
+
 # /etc/network/interfaces - Wired network configuration
 cat > "$ROOTFS_DIR/etc/network/interfaces" << 'EOF'
 # SparkOS Network Configuration
@@ -86,8 +113,14 @@ cat > "$ROOTFS_DIR/etc/profile" << 'EOF'
 
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin
 export PS1='SparkOS:\w\$ '
-export HOME=/root
 export TERM=linux
+
+# Set HOME based on user
+if [ "$(id -u)" = "0" ]; then
+    export HOME=/root
+else
+    export HOME=/home/$(whoami)
+fi
 
 # Welcome message
 echo "Welcome to SparkOS!"
@@ -111,6 +144,78 @@ export EDITOR=vi
 export PAGER=less
 EOF
 
+# Create .profile for spark user
+cat > "$ROOTFS_DIR/home/spark/.profile" << 'EOF'
+# SparkOS User Shell Configuration
+
+# Set prompt
+PS1='SparkOS:\w\$ '
+
+# Aliases
+alias ll='ls -lah'
+alias ..='cd ..'
+
+# Environment
+export EDITOR=vi
+export PAGER=less
+EOF
+
+# Create clone-sparkos.sh script for spark user
+cat > "$ROOTFS_DIR/home/spark/clone-sparkos.sh" << 'EOF'
+#!/bin/sh
+# SparkOS CLI Installation Script
+# This script clones the SparkOS CLI repository
+
+echo "SparkOS CLI Installation"
+echo "========================"
+echo ""
+
+SPARK_REPO="https://github.com/johndoe6345789/spark-cli.git"
+INSTALL_DIR="$HOME/spark-cli"
+
+echo "This script will clone the SparkOS CLI to: $INSTALL_DIR"
+echo ""
+
+# Check if git is available
+if ! command -v git >/dev/null 2>&1; then
+    echo "Error: git is not installed"
+    echo "Please install git to continue"
+    exit 1
+fi
+
+# Check if directory already exists
+if [ -d "$INSTALL_DIR" ]; then
+    echo "Warning: $INSTALL_DIR already exists"
+    echo -n "Do you want to remove it and re-clone? (y/N): "
+    read answer
+    if [ "$answer" = "y" ] || [ "$answer" = "Y" ]; then
+        rm -rf "$INSTALL_DIR"
+    else
+        echo "Installation cancelled"
+        exit 0
+    fi
+fi
+
+# Clone the repository
+echo "Cloning spark CLI repository..."
+if git clone "$SPARK_REPO" "$INSTALL_DIR"; then
+    echo ""
+    echo "SparkOS CLI cloned successfully!"
+    echo ""
+    echo "Next steps:"
+    echo "  1. cd $INSTALL_DIR"
+    echo "  2. Follow the installation instructions in the repository"
+    echo ""
+else
+    echo ""
+    echo "Error: Failed to clone repository"
+    echo "Please check your network connection and try again"
+    exit 1
+fi
+EOF
+
+chmod +x "$ROOTFS_DIR/home/spark/clone-sparkos.sh"
+
 # Create a simple help script
 cat > "$ROOTFS_DIR/bin/sparkos-help" << 'EOF'
 #!/bin/sh
@@ -124,6 +229,14 @@ Default Packages:
   - Busybox (shell and utilities)
   - Git (for installing spark CLI)
   - Sudo (privilege elevation)
+
+Default User:
+  Username: spark
+  Home: /home/spark
+  Privileges: Full sudo access (no password required)
+  
+  To run commands as root: sudo <command>
+  To become root: sudo -i
 
 Available commands:
   ls, cd, pwd      - Navigate filesystem
@@ -144,7 +257,7 @@ Network:
   To test DNS: ping google.com
 
 Next Steps:
-  1. Install spark CLI: git clone <spark-repo>
+  1. Install spark CLI: ~/clone-sparkos.sh
   2. Use spark CLI to configure WiFi and system
   3. Install additional packages as needed
 
@@ -213,7 +326,13 @@ Directory Structure:
   /usr              - User programs
   /var              - Variable data
   /root             - Root home directory
-  /home             - User home directories
+  /home/spark       - Default user home directory
+
+Default User:
+  Username: spark (UID 1000)
+  Home: /home/spark
+  Sudo: Full access without password
+  Scripts: ~/clone-sparkos.sh for installing spark CLI
 
 Network Configuration:
   /etc/network/interfaces - Wired network (DHCP)
@@ -221,10 +340,11 @@ Network Configuration:
   /sbin/init-network      - Network initialization script
 
 Bootstrap Process:
-  1. System boots with wired networking (DHCP)
-  2. Use git to clone spark CLI repository
+  1. System boots as 'spark' user with wired networking (DHCP)
+  2. Run ~/clone-sparkos.sh to install spark CLI
   3. Use spark CLI to configure WiFi and system
   4. Install additional packages via spark CLI
+  5. Use 'sudo' for any root-level operations
 
 Note: This is a minimal system. You'll need to populate /bin and /usr/bin
 with actual binaries (busybox, git, sudo) from a proper Linux system
@@ -233,6 +353,12 @@ EOF
 
 echo ""
 echo "Root filesystem structure created at: $ROOTFS_DIR"
+echo ""
+echo "User configuration:"
+echo "  - Default user: spark (UID 1000)"
+echo "  - Home directory: /home/spark"
+echo "  - Sudo access: Enabled (no password required)"
+echo "  - Clone script: /home/spark/clone-sparkos.sh"
 echo ""
 echo "Network configuration:"
 echo "  - Wired networking (DHCP) configured for eth0"
