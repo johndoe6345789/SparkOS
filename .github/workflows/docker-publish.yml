@@ -68,6 +68,7 @@ jobs:
 
       - name: Test Docker image
         run: |
+          set -e  # Exit immediately if a command exits with a non-zero status
           echo "Testing SparkOS Docker image..."
           # Get the first tag from the metadata output
           IMAGE_TAG=$(echo "${{ steps.meta.outputs.tags }}" | head -n1)
@@ -80,10 +81,18 @@ jobs:
           fi
           
           # Run the container and check output
-          docker run --rm "$IMAGE_TAG"
+          echo "Running container entrypoint test..."
+          if ! docker run --rm "$IMAGE_TAG"; then
+            echo "ERROR: Container entrypoint test failed!"
+            exit 1
+          fi
           
           # Verify init binary exists and is executable
-          docker run --rm "$IMAGE_TAG" sh -c "test -x /sparkos/rootfs/sbin/init && echo 'Init binary is executable'"
+          echo "Verifying init binary is executable..."
+          if ! docker run --rm "$IMAGE_TAG" sh -c "test -x /sparkos/rootfs/sbin/init && echo 'Init binary is executable'"; then
+            echo "ERROR: Init binary verification failed!"
+            exit 1
+          fi
           
           echo "Docker image test completed successfully!"
 
