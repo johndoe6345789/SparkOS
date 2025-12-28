@@ -1,5 +1,7 @@
 #!/bin/bash
 # Quick build script for SparkOS development
+# Note: This script runs on the host system and uses bash for ${BASH_SOURCE}
+# The target system uses busybox sh instead.
 
 set -e
 

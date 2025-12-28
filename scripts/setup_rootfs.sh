@@ -1,6 +1,8 @@
 #!/bin/bash
 # SparkOS Setup Script
 # Sets up a minimal rootfs with busybox and essential utilities
+# Note: This script runs on the host system and uses bash for ${BASH_SOURCE}
+# The target system uses busybox sh instead.
 
 set -e
 
