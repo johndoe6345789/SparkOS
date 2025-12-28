@@ -17,3 +17,4 @@ $ spark remove package mypackage
 
 $ spark run mypackage
 
+Spark command will be expanded to multiple domains, gaming, server admin, you name it.
