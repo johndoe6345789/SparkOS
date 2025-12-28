@@ -171,11 +171,16 @@ ip link set lo up 2>/dev/null || ifconfig lo up 2>/dev/null
 for iface in eth0 enp0s3 enp0s8 ens33; do
     if ip link show "$iface" >/dev/null 2>&1; then
         echo "Bringing up $iface..."
-        ip link set "$iface" up 2>/dev/null || ifconfig "$iface" up 2>/dev/null
         
-        # Try to get IP via DHCP using busybox udhcpc
-        if command -v udhcpc >/dev/null 2>&1; then
-            udhcpc -i "$iface" -q -n -t 5 2>/dev/null &
+        # Bring up the interface
+        if ip link set "$iface" up 2>/dev/null || ifconfig "$iface" up 2>/dev/null; then
+            # Try to get IP via DHCP using busybox udhcpc
+            if command -v udhcpc >/dev/null 2>&1; then
+                # Run udhcpc in background, it will daemonize itself
+                udhcpc -i "$iface" -b -t 5 2>/dev/null
+            fi
+        else
+            echo "Warning: Failed to bring up $iface"
         fi
         break
     fi
