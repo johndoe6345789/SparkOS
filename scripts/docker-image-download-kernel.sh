@@ -14,7 +14,7 @@ cd /kernel/build
 
 # Download kernel source
 echo "Downloading kernel ${KERNEL_VERSION}..."
-wget -q --show-progress https://cdn.kernel.org/pub/linux/kernel/v${KERNEL_MAJOR}.x/linux-${KERNEL_VERSION}.tar.xz
+wget https://cdn.kernel.org/pub/linux/kernel/v${KERNEL_MAJOR}.x/linux-${KERNEL_VERSION}.tar.xz
 
 # Extract
 echo "Extracting kernel source..."
