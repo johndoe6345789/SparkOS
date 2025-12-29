@@ -23,7 +23,9 @@ FROM alpine:3.19
 COPY scripts/docker-install-packages.sh /tmp/
 RUN /tmp/docker-install-packages.sh
 
-# Note: Alpine includes busybox by default
+# Alpine Linux includes BusyBox by default
+# BusyBox provides: shell (sh), networking (udhcpc, ip, ping, wget), and core utilities
+# This is verified by the test.sh script which shows BusyBox version and available applets
 
 # Create minimal rootfs structure
 COPY scripts/docker-setup-rootfs.sh /tmp/
