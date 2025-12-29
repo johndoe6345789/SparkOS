@@ -1,6 +1,5 @@
 #!/bin/bash
 # Create UEFI-bootable SparkOS image with GPT partition table
-# This version uses mtools and mke2fs to avoid needing loop devices
 
 set -e
 
@@ -8,7 +7,36 @@ mkdir -p /output /staging/esp /staging/root
 
 echo "=== Creating UEFI-bootable SparkOS image with GRUB ==="
 
-# Prepare ESP contents first
+# Create 1GB disk image (larger for kernel + bootloader)
+dd if=/dev/zero of=/output/sparkos.img bs=1M count=1024
+
+# Create GPT partition table
+echo "Creating GPT partition table..."
+parted -s /output/sparkos.img mklabel gpt
+
+# Create EFI System Partition (ESP) - 200MB, FAT32
+echo "Creating EFI System Partition..."
+parted -s /output/sparkos.img mkpart ESP fat32 1MiB 201MiB
+parted -s /output/sparkos.img set 1 esp on
+
+# Create root partition - remaining space, ext4
+echo "Creating root partition..."
+parted -s /output/sparkos.img mkpart primary ext4 201MiB 100%
+
+# Use libguestfs to format and populate partitions without loop devices
+echo "Formatting partitions using guestfish..."
+guestfish -a /output/sparkos.img <<'EOF'
+run
+mkfs vfat /dev/sda1 label:SPARKOSEFI
+mkfs ext4 /dev/sda2 label:SparkOS
+mount /dev/sda2 /
+mkdir-p /boot
+EOF
+
+# Prepare ESP contents
+echo "Preparing ESP contents..."
+
+# Prepare ESP contents
 echo "Preparing ESP contents..."
 mkdir -p /staging/esp/EFI/BOOT
 mkdir -p /staging/esp/boot/grub
@@ -71,50 +99,52 @@ echo "spark:x:1000:" >> /staging/root/etc/group
 # Copy README to root partition
 cp /build/config/image-readme.txt /staging/root/README.txt
 
-# Create 1GB disk image
-echo "Creating disk image..."
-dd if=/dev/zero of=/output/sparkos.img bs=1M count=1024
+# Copy ESP contents to the image
+echo "Populating EFI System Partition..."
+guestfish -a /output/sparkos.img <<'EOF'
+run
+mount /dev/sda1 /
+mkdir-p /EFI
+mkdir-p /EFI/BOOT
+mkdir-p /boot
+mkdir-p /boot/grub
+EOF
 
-# Create GPT partition table using sgdisk
-echo "Creating GPT partition table..."
-sgdisk -Z /output/sparkos.img 2>/dev/null || true
-sgdisk -n 1:2048:411647 -t 1:ef00 -c 1:"EFI System" /output/sparkos.img
-sgdisk -n 2:411648:0 -t 2:8300 -c 2:"Linux filesystem" /output/sparkos.img
+# Copy files using guestfish
+echo "Copying bootloader files..."
+guestfish -a /output/sparkos.img -m /dev/sda1 <<EOF
+copy-in /staging/esp/EFI/BOOT/BOOTX64.EFI /EFI/BOOT/
+copy-in /staging/esp/boot/vmlinuz /boot/
+EOF
 
-# Extract partition regions using dd
-echo "Extracting partition regions..."
-dd if=/output/sparkos.img of=/tmp/esp.img bs=512 skip=2048 count=409600 2>/dev/null
-dd if=/output/sparkos.img of=/tmp/root.img bs=512 skip=411648 2>/dev/null
-
-# Format ESP partition (FAT32)
-echo "Formatting EFI System Partition (FAT32)..."
-mkfs.vfat -F 32 -n "SPARKOSEFI" /tmp/esp.img >/dev/null
-
-# Populate ESP using mtools (no mount needed!)
-echo "Populating ESP with bootloader and kernel..."
-export MTOOLS_SKIP_CHECK=1
-mmd -i /tmp/esp.img ::/EFI
-mmd -i /tmp/esp.img ::/EFI/BOOT
-mmd -i /tmp/esp.img ::/boot
-mmd -i /tmp/esp.img ::/boot/grub
-mcopy -i /tmp/esp.img /staging/esp/EFI/BOOT/BOOTX64.EFI ::/EFI/BOOT/
-mcopy -i /tmp/esp.img /staging/esp/boot/vmlinuz ::/boot/
 if [ -f "/staging/esp/boot/initrd.img" ]; then
-    mcopy -i /tmp/esp.img /staging/esp/boot/initrd.img ::/boot/
+    guestfish -a /output/sparkos.img -m /dev/sda1 copy-in /staging/esp/boot/initrd.img /boot/
 fi
-mcopy -i /tmp/esp.img /staging/esp/boot/grub/grub.cfg ::/boot/grub/
 
-# Format root partition (ext4) with directory contents (no mount needed!)
-echo "Formatting root partition (ext4) and populating..."
-mke2fs -t ext4 -L "SparkOS" -d /staging/root /tmp/root.img >/dev/null 2>&1
+guestfish -a /output/sparkos.img -m /dev/sda1 <<EOF
+copy-in /staging/esp/boot/grub/grub.cfg /boot/grub/
+EOF
 
-# Write partitions back to image
-echo "Writing partitions to image..."
-dd if=/tmp/esp.img of=/output/sparkos.img bs=512 seek=2048 count=409600 conv=notrunc 2>/dev/null
-dd if=/tmp/root.img of=/output/sparkos.img bs=512 seek=411648 conv=notrunc 2>/dev/null
-
-# Clean up temporary files
-rm -f /tmp/esp.img /tmp/root.img
+# Copy root filesystem contents to the image
+echo "Populating root filesystem..."
+guestfish -a /output/sparkos.img -m /dev/sda2 <<'EOF'
+copy-in /staging/root/bin /
+copy-in /staging/root/sbin /
+copy-in /staging/root/etc /
+copy-in /staging/root/usr /
+copy-in /staging/root/var /
+copy-in /staging/root/root /
+copy-in /staging/root/home /
+copy-in /staging/root/README.txt /
+mkdir-p /proc
+mkdir-p /sys
+mkdir-p /dev
+mkdir-p /tmp
+mkdir-p /boot
+chmod 0755 /tmp
+chmod 0755 /sbin/init
+chmod 0755 /bin/busybox
+EOF
 
 # Finalize
 echo "Finalizing image..."
