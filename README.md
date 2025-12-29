@@ -45,9 +45,39 @@ To create bootable images (optional):
 
 ## Quick Start
 
-### Using Pre-built Releases (Easiest)
+### Using UEFI-Bootable Disk Image (Recommended - Boot from USB)
 
-Download the latest release package from the [GitHub Releases page](https://github.com/johndoe6345789/SparkOS/releases):
+Download the UEFI-bootable image from the [GitHub Releases page](https://github.com/johndoe6345789/SparkOS/releases):
+
+```bash
+# Download the disk image (replace VERSION with actual version, e.g., v1.0.0)
+wget https://github.com/johndoe6345789/SparkOS/releases/download/VERSION/sparkos.img.gz
+
+# Decompress the image
+gunzip sparkos.img.gz
+
+# Write to USB drive (Linux - BE CAREFUL!)
+sudo dd if=sparkos.img of=/dev/sdX bs=4M status=progress oflag=sync
+```
+
+**⚠️ WARNING**: Replace `/dev/sdX` with your actual USB device (e.g., `/dev/sdb`). This will **DESTROY ALL DATA** on the target drive!
+
+**Boot Instructions:**
+1. Insert the USB drive into a UEFI-capable system
+2. Enter BIOS/UEFI settings (usually F2, F12, DEL, or ESC at boot)
+3. Select the USB drive as boot device
+4. SparkOS will boot automatically
+
+The UEFI-bootable disk image includes:
+- ✅ **UEFI boot support** with GRUB bootloader
+- ✅ **GPT partition table** with ESP (EFI System Partition)
+- ✅ **Linux kernel** ready to boot
+- ✅ **SparkOS init system** and busybox utilities
+- ✅ **Ready to boot** - No additional setup required
+
+### Using Pre-built Binary Package
+
+Download the binary package from the [GitHub Releases page](https://github.com/johndoe6345789/SparkOS/releases):
 
 ```bash
 # Download the latest release (replace VERSION with actual version, e.g., v1.0.0)
@@ -84,6 +114,9 @@ docker run --rm ghcr.io/johndoe6345789/sparkos:latest
 docker build -t sparkos:local .
 docker run --rm sparkos:local
 
+# Or use Docker Compose for even simpler testing
+docker-compose up
+
 # Build for specific architecture
 docker buildx build --platform linux/amd64 -t sparkos:amd64 --load .
 docker buildx build --platform linux/arm64 -t sparkos:arm64 --load .
@@ -96,6 +129,18 @@ The Docker image includes:
 - **Multi-architecture support**: Available for both AMD64 (x86_64) and ARM64 (aarch64) architectures
 
 Images are automatically built and published to [GitHub Container Registry](https://github.com/johndoe6345789/SparkOS/pkgs/container/sparkos) on every push to main branch.
+
+**Building Releases with Docker (No Root Required):**
+
+Create release packages easily using Docker without needing root privileges or special tools:
+
+```bash
+# Build a release package for version v1.0.0
+./scripts/docker-release.sh v1.0.0
+
+# The release ZIP will be created in release/sparkos-release.zip
+# This is the same artifact that GitHub Actions creates
+```
 
 ### Building the Init System
 
@@ -117,9 +162,32 @@ make init
 make install
 ```
 
-### Creating a Bootable Image (Advanced)
+### Creating a UEFI-Bootable Image
 
-⚠️ **Warning**: Creating bootable images requires root privileges and proper tools.
+**Using Docker (Recommended - No Root Required):**
+
+Build UEFI-bootable disk images easily using Docker without needing root privileges on your host:
+
+```bash
+# Build the UEFI-bootable disk image using Docker
+make image-docker
+
+# Or use the script directly
+./scripts/build-image.sh
+
+# The compressed UEFI-bootable image will be in release/sparkos.img.gz
+```
+
+This creates a complete UEFI-bootable image with:
+- GPT partition table
+- EFI System Partition (ESP) with FAT32
+- GRUB UEFI bootloader
+- Linux kernel
+- SparkOS init system and busybox
+
+**Traditional Method (Requires Root):**
+
+⚠️ **Warning**: This method is for creating custom partitioned images and requires root privileges.
 
 ```bash
 # Install required tools (Ubuntu/Debian)
@@ -243,15 +311,65 @@ docker buildx build --platform linux/amd64,linux/arm64 -t sparkos:multiarch .
 # Test the image
 docker run --rm sparkos:dev
 
+# Or use Docker Compose
+docker-compose up
+
 # Inspect the init binary
 docker run --rm sparkos:dev sh -c "ls -lh /sparkos/rootfs/sbin/init"
 ```
+
+### Creating Releases
+
+**Using Docker (Recommended - No Root Required):**
+
+Build release packages locally using Docker without needing root privileges:
+
+```bash
+# Build a release package
+./scripts/docker-release.sh v1.0.0
+
+# The release ZIP will be in release/sparkos-release.zip
+# This is identical to what GitHub Actions creates
+```
+
+**Creating a GitHub Release:**
+
+1. **Commit and push your changes** to the main branch
+2. **Create and push a version tag:**
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+3. **GitHub Actions will automatically:**
+   - Build the init binary
+   - Create the release package ZIP
+   - Build and publish Docker images (AMD64 + ARM64)
+   - Create a GitHub Release with the artifacts
+   - Publish to GitHub Container Registry
+
+The release will be available at:
+- **GitHub Releases:** https://github.com/johndoe6345789/SparkOS/releases
+- **Docker Images:** `ghcr.io/johndoe6345789/sparkos:v1.0.0`
+
+**Manual Release Creation:**
+
+You can also create a release manually:
+1. Go to https://github.com/johndoe6345789/SparkOS/releases/new
+2. Choose or create a tag (e.g., `v1.0.0`)
+3. Fill in the release title and description
+4. Upload the `sparkos-release.zip` (built locally with `docker-release.sh`)
+5. Publish the release
+
+For detailed instructions on creating releases, see [RELEASING.md](RELEASING.md).
 
 ### Building Components
 
 ```bash
 # Build init system only
 make init
+
+# Build release package using Docker
+make docker-release
 
 # Install to rootfs
 make install
