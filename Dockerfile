@@ -20,40 +20,21 @@ FROM alpine:3.19
 
 # Install file command for testing init binary
 # file package provides the file(1) command to determine file type
-RUN apk add --no-cache file
+COPY scripts/docker-install-packages.sh /tmp/
+RUN /tmp/docker-install-packages.sh
 
 # Note: Alpine includes busybox by default
 
 # Create minimal rootfs structure
-RUN mkdir -p /sparkos/rootfs/bin \
-    /sparkos/rootfs/sbin \
-    /sparkos/rootfs/etc \
-    /sparkos/rootfs/proc \
-    /sparkos/rootfs/sys \
-    /sparkos/rootfs/dev \
-    /sparkos/rootfs/tmp \
-    /sparkos/rootfs/usr/bin \
-    /sparkos/rootfs/usr/sbin \
-    /sparkos/rootfs/usr/lib \
-    /sparkos/rootfs/var/log \
-    /sparkos/rootfs/var/run \
-    /sparkos/rootfs/root \
-    /sparkos/rootfs/home/spark && \
-    chmod 1777 /sparkos/rootfs/tmp && \
-    chmod 700 /sparkos/rootfs/root && \
-    chmod 755 /sparkos/rootfs/home/spark
+COPY scripts/docker-setup-rootfs.sh /tmp/
+RUN /tmp/docker-setup-rootfs.sh
 
 # Copy built init binary from builder
 COPY --from=builder /build/init /sparkos/rootfs/sbin/init
 
 # Set up basic configuration files
-RUN echo "sparkos" > /sparkos/rootfs/etc/hostname && \
-    echo "127.0.0.1   localhost" > /sparkos/rootfs/etc/hosts && \
-    echo "127.0.1.1   sparkos" >> /sparkos/rootfs/etc/hosts && \
-    echo "root:x:0:0:root:/root:/bin/sh" > /sparkos/rootfs/etc/passwd && \
-    echo "spark:x:1000:1000:SparkOS User:/home/spark:/bin/sh" >> /sparkos/rootfs/etc/passwd && \
-    echo "root:x:0:" > /sparkos/rootfs/etc/group && \
-    echo "spark:x:1000:" >> /sparkos/rootfs/etc/group
+COPY scripts/docker-setup-config.sh /tmp/
+RUN /tmp/docker-setup-config.sh
 
 # Create a test entrypoint
 COPY scripts/test.sh /sparkos/test.sh
