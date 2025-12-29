@@ -104,15 +104,25 @@ int main(int argc, char *argv[]) {
     printf("Setting up overlay filesystem for writable layer...\n");
     
     // Create overlay directories in tmpfs
-    if (system("mkdir -p /tmp/overlay/upper /tmp/overlay/work 2>/dev/null") != 0) {
-        fprintf(stderr, "Warning: Failed to create overlay directories\n");
+    if (system("mkdir -p /tmp/overlay/var-upper /tmp/overlay/var-work 2>/dev/null") != 0) {
+        fprintf(stderr, "Warning: Failed to create overlay directories for /var\n");
+    }
+    if (system("mkdir -p /tmp/overlay/home-upper /tmp/overlay/home-work 2>/dev/null") != 0) {
+        fprintf(stderr, "Warning: Failed to create overlay directories for /home/spark\n");
     }
     
     // Mount overlay on /var for logs and runtime data
-    if (system("mount -t overlay overlay -o lowerdir=/var,upperdir=/tmp/overlay/upper,workdir=/tmp/overlay/work /var 2>/dev/null") != 0) {
+    if (system("mount -t overlay overlay -o lowerdir=/var,upperdir=/tmp/overlay/var-upper,workdir=/tmp/overlay/var-work /var 2>/dev/null") != 0) {
         fprintf(stderr, "Warning: Failed to mount overlay on /var - system may be read-only\n");
     } else {
         printf("Overlay filesystem mounted on /var (base OS is immutable)\n");
+    }
+    
+    // Mount overlay on /home/spark for user data
+    if (system("mount -t overlay overlay -o lowerdir=/home/spark,upperdir=/tmp/overlay/home-upper,workdir=/tmp/overlay/home-work /home/spark 2>/dev/null") != 0) {
+        fprintf(stderr, "Warning: Failed to mount overlay on /home/spark - home directory may be read-only\n");
+    } else {
+        printf("Overlay filesystem mounted on /home/spark (writable user home)\n");
     }
     
     // Mount tmpfs on /run for runtime data
@@ -132,7 +142,7 @@ int main(int argc, char *argv[]) {
     printf("Welcome to SparkOS!\n");
     printf("===================\n");
     printf("Base OS: Read-only (immutable)\n");
-    printf("Writable: /tmp, /var (overlay), /run\n\n");
+    printf("Writable: /tmp, /var (overlay), /home/spark (overlay), /run\n\n");
     
     // Main loop - keep respawning shell
     while (1) {
