@@ -84,6 +84,9 @@ docker run --rm ghcr.io/johndoe6345789/sparkos:latest
 docker build -t sparkos:local .
 docker run --rm sparkos:local
 
+# Or use Docker Compose for even simpler testing
+docker-compose up
+
 # Build for specific architecture
 docker buildx build --platform linux/amd64 -t sparkos:amd64 --load .
 docker buildx build --platform linux/arm64 -t sparkos:arm64 --load .
@@ -96,6 +99,18 @@ The Docker image includes:
 - **Multi-architecture support**: Available for both AMD64 (x86_64) and ARM64 (aarch64) architectures
 
 Images are automatically built and published to [GitHub Container Registry](https://github.com/johndoe6345789/SparkOS/pkgs/container/sparkos) on every push to main branch.
+
+**Building Releases with Docker (No Root Required):**
+
+Create release packages easily using Docker without needing root privileges or special tools:
+
+```bash
+# Build a release package for version v1.0.0
+./scripts/docker-release.sh v1.0.0
+
+# The release ZIP will be created in release/sparkos-release.zip
+# This is the same artifact that GitHub Actions creates
+```
 
 ### Building the Init System
 
@@ -243,9 +258,54 @@ docker buildx build --platform linux/amd64,linux/arm64 -t sparkos:multiarch .
 # Test the image
 docker run --rm sparkos:dev
 
+# Or use Docker Compose
+docker-compose up
+
 # Inspect the init binary
 docker run --rm sparkos:dev sh -c "ls -lh /sparkos/rootfs/sbin/init"
 ```
+
+### Creating Releases
+
+**Using Docker (Recommended - No Root Required):**
+
+Build release packages locally using Docker without needing root privileges:
+
+```bash
+# Build a release package
+./scripts/docker-release.sh v1.0.0
+
+# The release ZIP will be in release/sparkos-release.zip
+# This is identical to what GitHub Actions creates
+```
+
+**Creating a GitHub Release:**
+
+1. **Commit and push your changes** to the main branch
+2. **Create and push a version tag:**
+   ```bash
+   git tag v1.0.0
+   git push origin v1.0.0
+   ```
+3. **GitHub Actions will automatically:**
+   - Build the init binary
+   - Create the release package ZIP
+   - Build and publish Docker images (AMD64 + ARM64)
+   - Create a GitHub Release with the artifacts
+   - Publish to GitHub Container Registry
+
+The release will be available at:
+- **GitHub Releases:** https://github.com/johndoe6345789/SparkOS/releases
+- **Docker Images:** `ghcr.io/johndoe6345789/sparkos:v1.0.0`
+
+**Manual Release Creation:**
+
+You can also create a release manually:
+1. Go to https://github.com/johndoe6345789/SparkOS/releases/new
+2. Choose or create a tag (e.g., `v1.0.0`)
+3. Fill in the release title and description
+4. Upload the `sparkos-release.zip` (built locally with `docker-release.sh`)
+5. Publish the release
 
 ### Building Components
 
