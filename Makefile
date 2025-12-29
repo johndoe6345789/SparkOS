@@ -7,7 +7,7 @@ DESTDIR = rootfs
 IMAGE = sparkos.img
 IMAGE_SIZE = 512M
 
-.PHONY: all clean init image help install docker-release
+.PHONY: all clean init image image-docker help install docker-release
 
 all: init
 
@@ -18,14 +18,16 @@ help:
 	@echo "  make init           - Build the init system"
 	@echo "  make install        - Install init to rootfs"
 	@echo "  make image          - Create bootable dd-able image (requires root)"
+	@echo "  make image-docker   - Create bootable image using Docker (no root required)"
 	@echo "  make docker-release - Build release package using Docker (no root required)"
 	@echo "  make clean          - Clean build artifacts"
 	@echo ""
 	@echo "Note: Creating a bootable image requires root privileges"
 	@echo "      and various tools (debootstrap, syslinux, etc.)"
 	@echo ""
-	@echo "For easier release building, use Docker:"
-	@echo "      ./scripts/docker-release.sh v1.0.0"
+	@echo "For easier image building, use Docker:"
+	@echo "      make image-docker"
+	@echo "      OR: ./scripts/build-image.sh"
 
 init: src/init.c
 	@echo "Building SparkOS init system..."
@@ -45,6 +47,10 @@ image: install
 		exit 1; \
 	fi
 	@./scripts/create_image.sh
+
+image-docker:
+	@echo "Building bootable image using Docker..."
+	@./scripts/build-image.sh
 
 docker-release:
 	@echo "Building release package using Docker..."

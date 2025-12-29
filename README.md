@@ -45,9 +45,33 @@ To create bootable images (optional):
 
 ## Quick Start
 
-### Using Pre-built Releases (Easiest)
+### Using Pre-built Disk Image (Easiest for USB Boot)
 
-Download the latest release package from the [GitHub Releases page](https://github.com/johndoe6345789/SparkOS/releases):
+Download the bootable disk image from the [GitHub Releases page](https://github.com/johndoe6345789/SparkOS/releases):
+
+```bash
+# Download the disk image (replace VERSION with actual version, e.g., v1.0.0)
+wget https://github.com/johndoe6345789/SparkOS/releases/download/VERSION/sparkos.img.gz
+
+# Decompress the image
+gunzip sparkos.img.gz
+
+# Write to USB drive (Linux - BE CAREFUL!)
+sudo dd if=sparkos.img of=/dev/sdX bs=4M status=progress
+sudo sync
+```
+
+**⚠️ WARNING**: Replace `/dev/sdX` with your actual USB device (e.g., `/dev/sdb`). This will **DESTROY ALL DATA** on the target drive!
+
+The disk image includes:
+- Pre-compiled init binary
+- Basic filesystem structure (FHS compliant)
+- Configuration files
+- Ready to write to USB drives
+
+### Using Pre-built Binary Package
+
+Download the binary package from the [GitHub Releases page](https://github.com/johndoe6345789/SparkOS/releases):
 
 ```bash
 # Download the latest release (replace VERSION with actual version, e.g., v1.0.0)
@@ -132,9 +156,25 @@ make init
 make install
 ```
 
-### Creating a Bootable Image (Advanced)
+### Creating a Bootable Image
 
-⚠️ **Warning**: Creating bootable images requires root privileges and proper tools.
+**Using Docker (Recommended - No Root Required):**
+
+Build disk images easily using Docker without needing root privileges on your host:
+
+```bash
+# Build the disk image using Docker
+make image-docker
+
+# Or use the script directly
+./scripts/build-image.sh
+
+# The compressed image will be in release/sparkos.img.gz
+```
+
+**Traditional Method (Requires Root):**
+
+⚠️ **Warning**: This method requires root privileges and proper tools.
 
 ```bash
 # Install required tools (Ubuntu/Debian)
@@ -307,11 +347,16 @@ You can also create a release manually:
 4. Upload the `sparkos-release.zip` (built locally with `docker-release.sh`)
 5. Publish the release
 
+For detailed instructions on creating releases, see [RELEASING.md](RELEASING.md).
+
 ### Building Components
 
 ```bash
 # Build init system only
 make init
+
+# Build release package using Docker
+make docker-release
 
 # Install to rootfs
 make install

@@ -1,0 +1,81 @@
+# Dockerfile for building SparkOS bootable image
+# This creates a .img file that can be written to USB drives
+
+FROM ubuntu:22.04 AS image-builder
+
+# Install required tools
+RUN apt-get update && \
+    apt-get install -y \
+    gcc \
+    make \
+    dosfstools \
+    mtools \
+    xorriso \
+    isolinux \
+    syslinux \
+    syslinux-common \
+    e2fsprogs \
+    parted \
+    kpartx \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+
+# Copy source files
+COPY src/ ./src/
+COPY Makefile .
+COPY scripts/ ./scripts/
+COPY config/ ./config/
+COPY rootfs/ ./rootfs/
+
+# Build the init binary
+RUN make init
+
+# Create the bootable image
+# We'll use a simpler approach that works in Docker
+RUN mkdir -p /output && \
+    echo "Building minimal bootable image..." && \
+    # Create a minimal image with just the init system for now
+    # This is a placeholder - the actual bootloader requires a kernel
+    dd if=/dev/zero of=/output/sparkos.img bs=1M count=512 && \
+    mkfs.ext4 -L SparkOS /output/sparkos.img && \
+    mkdir -p /mnt/img && \
+    mount -o loop /output/sparkos.img /mnt/img && \
+    mkdir -p /mnt/img/{bin,sbin,etc,proc,sys,dev,tmp,usr/{bin,sbin,lib},var/{log,run},root,home/spark,boot} && \
+    cp init /mnt/img/sbin/init && \
+    chmod 755 /mnt/img/sbin/init && \
+    # Create basic config files
+    echo "sparkos" > /mnt/img/etc/hostname && \
+    echo "127.0.0.1   localhost" > /mnt/img/etc/hosts && \
+    echo "127.0.1.1   sparkos" >> /mnt/img/etc/hosts && \
+    echo "root:x:0:0:root:/root:/bin/sh" > /mnt/img/etc/passwd && \
+    echo "spark:x:1000:1000:SparkOS User:/home/spark:/bin/sh" >> /mnt/img/etc/passwd && \
+    echo "root:x:0:" > /mnt/img/etc/group && \
+    echo "spark:x:1000:" >> /mnt/img/etc/group && \
+    # Create README
+    cat > /mnt/img/README.txt << 'EOF' && \
+SparkOS Minimal Image
+
+This is a minimal SparkOS filesystem image containing the init system.
+
+To make this fully bootable, you need to:
+1. Install a Linux kernel to /boot/vmlinuz
+2. Install busybox to /bin/busybox and create symlinks
+3. Install a bootloader (GRUB or syslinux)
+
+This image can be mounted and the init binary extracted:
+  sudo mount -o loop sparkos.img /mnt
+  cp /mnt/sbin/init ./
+  sudo umount /mnt
+
+For more information, see: https://github.com/johndoe6345789/SparkOS
+EOF
+    sync && \
+    umount /mnt/img && \
+    # Compress the image
+    gzip -9 /output/sparkos.img && \
+    echo "Image created: /output/sparkos.img.gz"
+
+# Final stage - just export the image
+FROM scratch AS export
+COPY --from=image-builder /output/sparkos.img.gz /sparkos.img.gz

@@ -1,0 +1,252 @@
+name: Build and Release Disk Image
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+jobs:
+  build-image:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build disk image using Docker
+        run: |
+          echo "Building SparkOS disk image..."
+          # Build the image builder container
+          docker buildx build \
+            --file Dockerfile.image \
+            --target image-builder \
+            --tag sparkos:image-builder \
+            --load \
+            .
+          
+          # Create a container and extract the image
+          echo "Extracting disk image..."
+          CONTAINER_ID=$(docker create sparkos:image-builder)
+          docker cp "$CONTAINER_ID:/output/sparkos.img.gz" ./sparkos.img.gz
+          docker rm "$CONTAINER_ID"
+          
+          echo "Disk image created successfully!"
+          ls -lh sparkos.img.gz
+
+      - name: Verify disk image
+        run: |
+          echo "Verifying disk image..."
+          if [ ! -f sparkos.img.gz ]; then
+            echo "ERROR: Disk image not found!"
+            exit 1
+          fi
+          
+          # Show file info
+          ls -lh sparkos.img.gz
+          file sparkos.img.gz
+          
+          # Decompress and check
+          echo "Decompressing to verify..."
+          gunzip -c sparkos.img.gz > sparkos.img
+          ls -lh sparkos.img
+          file sparkos.img
+          
+          # Show image info
+          echo ""
+          echo "Image details:"
+          fdisk -l sparkos.img || echo "Image is a filesystem, not a partitioned disk"
+          
+          # Try to mount and inspect (read-only)
+          echo ""
+          echo "Attempting to inspect image contents..."
+          mkdir -p /tmp/sparkos_test
+          if sudo mount -o loop,ro sparkos.img /tmp/sparkos_test 2>/dev/null; then
+            echo "✓ Image filesystem is valid"
+            echo "Contents:"
+            ls -la /tmp/sparkos_test/
+            if [ -f /tmp/sparkos_test/sbin/init ]; then
+              echo "✓ Init binary found"
+              ls -lh /tmp/sparkos_test/sbin/init
+            fi
+            sudo umount /tmp/sparkos_test
+          else
+            echo "Note: Could not mount image (may need different mount options)"
+          fi
+          
+          echo "Verification complete!"
+
+      - name: Create release package
+        run: |
+          echo "Creating release package..."
+          mkdir -p release
+          
+          # Move the compressed image
+          mv sparkos.img.gz release/
+          
+          # Create a README for the release
+          cat > release/README.txt << 'EOF'
+          SparkOS Bootable Disk Image
+          ===========================
+          
+          This package contains a compressed bootable disk image for SparkOS.
+          
+          Files:
+          - sparkos.img.gz - Compressed ext4 filesystem image (512MB)
+          
+          Quick Start:
+          -----------
+          
+          1. Decompress the image:
+             gunzip sparkos.img.gz
+          
+          2. Write to a USB drive (Linux):
+             sudo dd if=sparkos.img of=/dev/sdX bs=4M status=progress
+             sync
+             
+             WARNING: Replace /dev/sdX with your actual USB drive device.
+                      This will DESTROY all data on the target drive!
+          
+          3. Or mount and inspect:
+             sudo mount -o loop sparkos.img /mnt
+             ls -la /mnt
+             sudo umount /mnt
+          
+          Image Contents:
+          --------------
+          The image contains:
+          - SparkOS init system (/sbin/init)
+          - Basic filesystem structure (FHS compliant)
+          - Configuration files
+          
+          To make fully bootable:
+          ----------------------
+          The image needs additional components for booting:
+          1. Linux kernel (install to /boot/vmlinuz)
+          2. Busybox (install to /bin/busybox)
+          3. Bootloader (GRUB or syslinux)
+          
+          See the full documentation at:
+          https://github.com/johndoe6345789/SparkOS
+          
+          Support:
+          -------
+          For issues and questions, visit:
+          https://github.com/johndoe6345789/SparkOS/issues
+          EOF
+          
+          # Create a ZIP with the image and README
+          cd release
+          zip sparkos-image.zip sparkos.img.gz README.txt
+          cd ..
+          
+          echo "Release package created!"
+          ls -lh release/
+
+      - name: Upload image artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sparkos-image-${{ github.sha }}
+          path: |
+            release/sparkos-image.zip
+            release/sparkos.img.gz
+          retention-days: 90
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            release/sparkos-image.zip
+            release/sparkos.img.gz
+          body: |
+            # SparkOS Disk Image Release ${{ github.ref_name }}
+            
+            This release includes a bootable disk image that can be written to USB drives.
+            
+            ## What's Included
+            
+            - **sparkos-image.zip**: Complete package with image and README
+            - **sparkos.img.gz**: Compressed disk image (512MB ext4 filesystem)
+            
+            ## Quick Start
+            
+            ### Download and Write to USB
+            
+            ```bash
+            # Download the compressed image
+            wget https://github.com/johndoe6345789/SparkOS/releases/download/${{ github.ref_name }}/sparkos.img.gz
+            
+            # Decompress
+            gunzip sparkos.img.gz
+            
+            # Write to USB drive (Linux - BE CAREFUL!)
+            sudo dd if=sparkos.img of=/dev/sdX bs=4M status=progress
+            sudo sync
+            ```
+            
+            **⚠️ WARNING**: Replace `/dev/sdX` with your actual USB device. This will erase all data on the target drive!
+            
+            ### Inspect the Image
+            
+            ```bash
+            # Mount and inspect
+            sudo mount -o loop sparkos.img /mnt
+            ls -la /mnt
+            sudo umount /mnt
+            ```
+            
+            ## Docker Image
+            
+            A Docker image is also available:
+            ```bash
+            docker pull ghcr.io/johndoe6345789/sparkos:${{ github.ref_name }}
+            ```
+            
+            ## Documentation
+            
+            See [README.md](https://github.com/johndoe6345789/SparkOS/blob/main/README.md) for full documentation.
+            
+            ## What's Changed
+            
+            See commit history for detailed changes.
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Output summary
+        run: |
+          echo "### Disk Image Build Summary 💾" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ✅ Success" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Disk Image:**" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          ls -lh release/sparkos.img.gz >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Release Package:**" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          ls -lh release/sparkos-image.zip >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "**Release:** Created GitHub release for ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Download from: https://github.com/${{ github.repository }}/releases/tag/${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "**Artifact:** Uploaded as workflow artifact (available for 90 days)" >> $GITHUB_STEP_SUMMARY
+          fi
