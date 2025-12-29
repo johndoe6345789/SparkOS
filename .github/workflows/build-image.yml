@@ -86,9 +86,9 @@ jobs:
             echo "ESP contents:"
             ls -laR /tmp/sparkos_esp/
             if [ -f /tmp/sparkos_esp/EFI/BOOT/BOOTX64.EFI ]; then
-              echo "✓ UEFI bootloader found"
+              echo "✓ UEFI bootloader (GRUB) found"
             fi
-            if [ -f /tmp/sparkos_esp/EFI/sparkos/vmlinuz ]; then
+            if [ -f /tmp/sparkos_esp/boot/vmlinuz ]; then
               echo "✓ Kernel found"
             fi
             sudo umount /tmp/sparkos_esp

@@ -81,14 +81,13 @@ RUN mkdir -p /output /mnt/esp /mnt/root && \
     echo "Installing GRUB bootloader..." && \
     mkdir -p /mnt/esp/EFI/BOOT && \
     \
-    # Copy GRUB EFI binary
-    cp /usr/lib/grub/x86_64-efi/monolithic/grubx64.efi /mnt/esp/EFI/BOOT/BOOTX64.EFI 2>/dev/null || \
+    # Create GRUB EFI binary using grub-mkstandalone
     grub-mkstandalone \
         --format=x86_64-efi \
         --output=/mnt/esp/EFI/BOOT/BOOTX64.EFI \
         --locales="" \
         --fonts="" \
-        "boot/grub/grub.cfg=/tmp/grub-early.cfg" && \
+        "boot/grub/grub.cfg=/dev/null" && \
     \
     # Find the kernel
     KERNEL_PATH=$(find /kernel/boot -name "vmlinuz-*" | head -1) && \
