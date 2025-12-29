@@ -10,7 +10,9 @@ if command -v busybox >/dev/null 2>&1; then
     echo "✓ BusyBox is installed"
     echo ""
     echo "BusyBox version:"
-    busybox | head -n 1
+    # Store version for reuse in summary
+    BUSYBOX_VERSION=$(busybox | head -n 1)
+    echo "$BUSYBOX_VERSION"
     echo ""
     echo "BusyBox location:"
     which busybox
@@ -73,7 +75,7 @@ echo "✓ SparkOS is ready for testing!"
 echo "================================"
 echo ""
 echo "Summary:"
-echo "  - BusyBox: $(busybox | head -n 1)"
+echo "  - BusyBox: $BUSYBOX_VERSION"
 echo "  - Init: Custom SparkOS init system"
 echo "  - Shell: BusyBox sh (/bin/sh)"
 echo "  - Networking: BusyBox udhcpc, ip, ping, wget"
