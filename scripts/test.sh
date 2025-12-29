@@ -14,12 +14,12 @@ if command -v busybox >/dev/null 2>&1; then
     echo ""
     echo "BusyBox location:"
     which busybox
-    ls -lh $(which busybox)
+    ls -lh "$(which busybox)"
     echo ""
     echo "Shell (/bin/sh) is BusyBox:"
     ls -lh /bin/sh
     if [ -L /bin/sh ]; then
-        echo "  → /bin/sh is a symlink to: $(readlink /bin/sh)"
+        echo "  → /bin/sh is a symlink to: \"$(readlink /bin/sh)\""
     fi
     echo ""
     echo "Available BusyBox applets (sample):"
