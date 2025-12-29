@@ -31,13 +31,13 @@ echo "Copying kernel to staging..."
 cp $KERNEL_PATH /staging/esp/boot/vmlinuz
 if [ -f "$INITRD_PATH" ]; then cp $INITRD_PATH /staging/esp/boot/initrd.img; fi
 
-# Create GRUB configuration
+# Create GRUB configuration for immutable root with overlay
 printf '%s\n' \
     'set timeout=3' \
     'set default=0' \
     '' \
-    'menuentry "SparkOS" {' \
-    '    linux /boot/vmlinuz root=LABEL=SparkOS rw init=/sbin/init console=tty1 quiet' \
+    'menuentry "SparkOS (Immutable Base + Overlay)" {' \
+    '    linux /boot/vmlinuz root=LABEL=SparkOS ro init=/sbin/init console=tty1 quiet' \
     '}' \
     > /staging/esp/boot/grub/grub.cfg
 
@@ -84,7 +84,14 @@ sgdisk -n 2:411648:0 -t 2:8300 -c 2:"Linux filesystem" /output/sparkos.img
 # Extract partition regions using dd
 echo "Extracting partition regions..."
 dd if=/output/sparkos.img of=/tmp/esp.img bs=512 skip=2048 count=409600 2>/dev/null
-dd if=/output/sparkos.img of=/tmp/root.img bs=512 skip=411648 2>/dev/null
+
+# Calculate exact size for root partition
+ROOT_START=411648
+ROOT_END=$(sgdisk -p /output/sparkos.img | grep "^  2" | awk '{print $3}')
+ROOT_SIZE=$((ROOT_END - ROOT_START + 1))
+echo "Root partition: start=$ROOT_START, end=$ROOT_END, size=$ROOT_SIZE sectors"
+
+dd if=/output/sparkos.img of=/tmp/root.img bs=512 skip=$ROOT_START count=$ROOT_SIZE 2>/dev/null
 
 # Format ESP partition (FAT32)
 echo "Formatting EFI System Partition (FAT32)..."
@@ -111,7 +118,7 @@ mke2fs -t ext4 -L "SparkOS" -d /staging/root /tmp/root.img >/dev/null 2>&1
 # Write partitions back to image
 echo "Writing partitions to image..."
 dd if=/tmp/esp.img of=/output/sparkos.img bs=512 seek=2048 count=409600 conv=notrunc 2>/dev/null
-dd if=/tmp/root.img of=/output/sparkos.img bs=512 seek=411648 conv=notrunc 2>/dev/null
+dd if=/tmp/root.img of=/output/sparkos.img bs=512 seek=$ROOT_START count=$ROOT_SIZE conv=notrunc 2>/dev/null
 
 # Clean up temporary files
 rm -f /tmp/esp.img /tmp/root.img

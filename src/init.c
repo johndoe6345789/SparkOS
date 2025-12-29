@@ -100,6 +100,28 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Warning: Failed to mount /tmp\n");
     }
     
+    // Set up overlay filesystem for immutable base OS
+    printf("Setting up overlay filesystem for writable layer...\n");
+    
+    // Create overlay directories in tmpfs
+    if (system("mkdir -p /tmp/overlay/upper /tmp/overlay/work 2>/dev/null") != 0) {
+        fprintf(stderr, "Warning: Failed to create overlay directories\n");
+    }
+    
+    // Mount overlay on /var for logs and runtime data
+    if (system("mount -t overlay overlay -o lowerdir=/var,upperdir=/tmp/overlay/upper,workdir=/tmp/overlay/work /var 2>/dev/null") != 0) {
+        fprintf(stderr, "Warning: Failed to mount overlay on /var - system may be read-only\n");
+    } else {
+        printf("Overlay filesystem mounted on /var (base OS is immutable)\n");
+    }
+    
+    // Mount tmpfs on /run for runtime data
+    if (system("mkdir -p /run 2>/dev/null") == 0) {
+        if (system("mount -t tmpfs tmpfs /run 2>/dev/null") != 0) {
+            fprintf(stderr, "Warning: Failed to mount /run\n");
+        }
+    }
+    
     // Initialize network (wired only for bootstrap)
     printf("Initializing wired network...\n");
     if (system("/sbin/init-network 2>/dev/null") != 0) {
@@ -108,7 +130,9 @@ int main(int argc, char *argv[]) {
     
     printf("Starting shell...\n");
     printf("Welcome to SparkOS!\n");
-    printf("===================\n\n");
+    printf("===================\n");
+    printf("Base OS: Read-only (immutable)\n");
+    printf("Writable: /tmp, /var (overlay), /run\n\n");
     
     // Main loop - keep respawning shell
     while (1) {
