@@ -17,12 +17,5 @@ apt-get install -y \
     wget \
     busybox-static \
     kmod \
-    udev \
-    bc \
-    bison \
-    flex \
-    libelf-dev \
-    libssl-dev \
-    xz-utils \
-    cpio
+    udev
 rm -rf /var/lib/apt/lists/*

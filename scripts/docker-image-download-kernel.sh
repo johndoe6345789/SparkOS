@@ -1,67 +1,43 @@
 #!/bin/bash
-# Download and build a minimal Linux kernel from kernel.org
+# Download a minimal Linux kernel for UEFI image
 
 set -e
 
-echo "=== Building minimal Linux kernel from kernel.org ==="
+echo "=== Downloading Linux kernel from Ubuntu repositories ==="
 
-# Use a stable LTS kernel version
-KERNEL_VERSION="6.6.68"
-KERNEL_MAJOR=$(echo $KERNEL_VERSION | cut -d. -f1)
+mkdir -p /kernel
+apt-get update
 
-mkdir -p /kernel/build
-cd /kernel/build
+# Get the actual kernel package name (not the metapackage)
+echo "Finding latest kernel package..."
+KERNEL_PKG=$(apt-cache depends linux-image-generic | grep -E 'Depends.*linux-image-[0-9]' | head -1 | awk '{print $2}')
 
-# Download kernel source
-echo "Downloading kernel ${KERNEL_VERSION}..."
-wget https://cdn.kernel.org/pub/linux/kernel/v${KERNEL_MAJOR}.x/linux-${KERNEL_VERSION}.tar.xz
+if [ -z "$KERNEL_PKG" ]; then
+    echo "ERROR: Could not determine kernel package name"
+    exit 1
+fi
 
-# Extract
-echo "Extracting kernel source..."
-tar -xf linux-${KERNEL_VERSION}.tar.xz
-cd linux-${KERNEL_VERSION}
+echo "Downloading kernel package: $KERNEL_PKG"
+apt-get download "$KERNEL_PKG"
 
-# Create minimal config for x86_64 UEFI boot
-echo "Configuring kernel for minimal UEFI boot..."
-make defconfig
-make kvm_guest.config
+# Extract the kernel package
+echo "Extracting kernel..."
+dpkg -x ${KERNEL_PKG}*.deb /kernel
 
-# Enable essential features for SparkOS
-scripts/config --enable CONFIG_EFI
-scripts/config --enable CONFIG_EFI_STUB
-scripts/config --enable CONFIG_DEVTMPFS
-scripts/config --enable CONFIG_DEVTMPFS_MOUNT
-scripts/config --enable CONFIG_TMPFS
-scripts/config --enable CONFIG_PROC_FS
-scripts/config --enable CONFIG_SYSFS
-scripts/config --enable CONFIG_EXT4_FS
-scripts/config --enable CONFIG_VFAT_FS
-scripts/config --enable CONFIG_NLS_CODEPAGE_437
-scripts/config --enable CONFIG_NLS_ISO8859_1
-scripts/config --enable CONFIG_TTY
-scripts/config --enable CONFIG_SERIAL_8250
-scripts/config --enable CONFIG_SERIAL_8250_CONSOLE
+# Verify kernel was extracted
+if [ ! -d /kernel/boot ]; then
+    echo "ERROR: Kernel boot directory not found after extraction"
+    exit 1
+fi
 
-# Disable unnecessary features to speed up build
-scripts/config --disable CONFIG_DEBUG_INFO
-scripts/config --disable CONFIG_DEBUG_INFO_BTF
-scripts/config --disable CONFIG_DEBUG_INFO_DWARF4
-scripts/config --disable CONFIG_DEBUG_INFO_DWARF5
-scripts/config --disable CONFIG_GDB_SCRIPTS
-scripts/config --set-str CONFIG_LOCALVERSION "-sparkos"
+KERNEL_FILE=$(find /kernel/boot -name "vmlinuz-*" | head -1)
+if [ -z "$KERNEL_FILE" ]; then
+    echo "ERROR: No kernel image found"
+    exit 1
+fi
 
-# Build kernel (use all available cores)
-echo "Building kernel (this may take several minutes)..."
-make -j$(nproc) bzImage
-
-# Copy kernel to expected location
-echo "Installing kernel..."
-mkdir -p /kernel/boot
-cp arch/x86/boot/bzImage /kernel/boot/vmlinuz-${KERNEL_VERSION}
-
-# Clean up build directory to save space
-cd /
-rm -rf /kernel/build
-
-echo "Kernel build complete: /kernel/boot/vmlinuz-${KERNEL_VERSION}"
+echo "Kernel extracted successfully: $KERNEL_FILE"
 ls -lh /kernel/boot/
+
+# Clean up
+rm -rf /var/lib/apt/lists/* ${KERNEL_PKG}*.deb
