@@ -16,5 +16,6 @@ apt-get install -y \
     grub-common \
     wget \
     busybox-static \
-    kmod
+    kmod \
+    udev
 rm -rf /var/lib/apt/lists/*

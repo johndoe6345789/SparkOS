@@ -1,55 +1,22 @@
 #!/bin/bash
 # Create UEFI-bootable SparkOS image with GPT partition table
+# This version uses mtools and mke2fs to avoid needing loop devices
 
 set -e
 
-mkdir -p /output /mnt/esp /mnt/root
+mkdir -p /output /staging/esp /staging/root
 
 echo "=== Creating UEFI-bootable SparkOS image with GRUB ==="
 
-# Create 1GB disk image (larger for kernel + bootloader)
-dd if=/dev/zero of=/output/sparkos.img bs=1M count=1024
-
-# Create GPT partition table
-echo "Creating GPT partition table..."
-parted -s /output/sparkos.img mklabel gpt
-
-# Create EFI System Partition (ESP) - 200MB, FAT32
-echo "Creating EFI System Partition..."
-parted -s /output/sparkos.img mkpart ESP fat32 1MiB 201MiB
-parted -s /output/sparkos.img set 1 esp on
-
-# Create root partition - remaining space, ext4
-echo "Creating root partition..."
-parted -s /output/sparkos.img mkpart primary ext4 201MiB 100%
-
-# Set up loop device for the image
-LOOP_DEV=$(losetup -f)
-losetup -P $LOOP_DEV /output/sparkos.img
-
-# Wait for partition devices
-sleep 1
-
-# Format partitions
-echo "Formatting EFI System Partition (FAT32)..."
-mkfs.vfat -F 32 -n "SPARKOSEFI" ${LOOP_DEV}p1
-
-echo "Formatting root partition (ext4)..."
-mkfs.ext4 -L "SparkOS" ${LOOP_DEV}p2
-
-# Mount ESP
-echo "Mounting partitions..."
-mount ${LOOP_DEV}p1 /mnt/esp
-mount ${LOOP_DEV}p2 /mnt/root
-
-# Install GRUB to ESP
-echo "Installing GRUB bootloader..."
-mkdir -p /mnt/esp/EFI/BOOT
+# Prepare ESP contents first
+echo "Preparing ESP contents..."
+mkdir -p /staging/esp/EFI/BOOT
+mkdir -p /staging/esp/boot/grub
 
 # Create GRUB EFI binary using grub-mkstandalone
 grub-mkstandalone \
     --format=x86_64-efi \
-    --output=/mnt/esp/EFI/BOOT/BOOTX64.EFI \
+    --output=/staging/esp/EFI/BOOT/BOOTX64.EFI \
     --locales="" \
     --fonts="" \
     "boot/grub/grub.cfg=/dev/null"
@@ -59,59 +26,106 @@ KERNEL_PATH=$(find /kernel/boot -name "vmlinuz-*" | head -1)
 KERNEL_VERSION=$(basename $KERNEL_PATH | sed 's/vmlinuz-//')
 INITRD_PATH=$(find /kernel/boot -name "initrd.img-*" | head -1)
 
-# Copy kernel and initrd to ESP
-echo "Installing kernel..."
-mkdir -p /mnt/esp/boot
-cp $KERNEL_PATH /mnt/esp/boot/vmlinuz
-if [ -f "$INITRD_PATH" ]; then cp $INITRD_PATH /mnt/esp/boot/initrd.img; fi
+# Copy kernel and initrd to staging
+echo "Copying kernel to staging..."
+cp $KERNEL_PATH /staging/esp/boot/vmlinuz
+if [ -f "$INITRD_PATH" ]; then cp $INITRD_PATH /staging/esp/boot/initrd.img; fi
 
-# Create GRUB configuration
-mkdir -p /mnt/esp/boot/grub
+# Create GRUB configuration for immutable root with overlay
 printf '%s\n' \
     'set timeout=3' \
     'set default=0' \
     '' \
-    'menuentry "SparkOS" {' \
-    '    linux /boot/vmlinuz root=LABEL=SparkOS rw init=/sbin/init console=tty1 quiet' \
+    'menuentry "SparkOS (Immutable Base + Overlay)" {' \
+    '    linux /boot/vmlinuz root=LABEL=SparkOS ro init=/sbin/init console=tty1 quiet' \
     '}' \
-    > /mnt/esp/boot/grub/grub.cfg
+    > /staging/esp/boot/grub/grub.cfg
 
-# Set up root filesystem
-echo "Setting up root filesystem..."
-mkdir -p /mnt/root/{bin,sbin,etc,proc,sys,dev,tmp,usr/{bin,sbin,lib,lib64},var/{log,run},root,home/spark,boot}
+# Prepare root filesystem contents
+echo "Preparing root filesystem..."
+mkdir -p /staging/root/{bin,sbin,etc,proc,sys,dev,tmp,usr/{bin,sbin,lib,lib64},var/{log,run},root,home/spark,boot}
 
 # Install SparkOS init
-cp /build/init /mnt/root/sbin/init
-chmod 755 /mnt/root/sbin/init
+cp /build/init /staging/root/sbin/init
+chmod 755 /staging/root/sbin/init
 
 # Install busybox
 echo "Installing busybox..."
-cp /bin/busybox /mnt/root/bin/busybox
-chmod 755 /mnt/root/bin/busybox
+cp /bin/busybox /staging/root/bin/busybox
+chmod 755 /staging/root/bin/busybox
 
 # Create busybox symlinks for essential commands
 for cmd in sh ls cat echo mount umount mkdir rm cp mv chmod chown ln ps kill; do
-    ln -sf busybox /mnt/root/bin/$cmd
+    ln -sf busybox /staging/root/bin/$cmd
 done
 
 # Create system configuration files
-echo "sparkos" > /mnt/root/etc/hostname
-echo "127.0.0.1   localhost" > /mnt/root/etc/hosts
-echo "127.0.1.1   sparkos" >> /mnt/root/etc/hosts
-echo "root:x:0:0:root:/root:/bin/sh" > /mnt/root/etc/passwd
-echo "spark:x:1000:1000:SparkOS User:/home/spark:/bin/sh" >> /mnt/root/etc/passwd
-echo "root:x:0:" > /mnt/root/etc/group
-echo "spark:x:1000:" >> /mnt/root/etc/group
+echo "sparkos" > /staging/root/etc/hostname
+echo "127.0.0.1   localhost" > /staging/root/etc/hosts
+echo "127.0.1.1   sparkos" >> /staging/root/etc/hosts
+echo "root:x:0:0:root:/root:/bin/sh" > /staging/root/etc/passwd
+echo "spark:x:1000:1000:SparkOS User:/home/spark:/bin/sh" >> /staging/root/etc/passwd
+echo "root:x:0:" > /staging/root/etc/group
+echo "spark:x:1000:" >> /staging/root/etc/group
 
 # Copy README to root partition
-cp /build/config/image-readme.txt /mnt/root/README.txt
+cp /build/config/image-readme.txt /staging/root/README.txt
 
-# Sync and unmount
+# Create 1GB disk image
+echo "Creating disk image..."
+dd if=/dev/zero of=/output/sparkos.img bs=1M count=1024
+
+# Create GPT partition table using sgdisk
+echo "Creating GPT partition table..."
+sgdisk -Z /output/sparkos.img 2>/dev/null || true
+sgdisk -n 1:2048:411647 -t 1:ef00 -c 1:"EFI System" /output/sparkos.img
+sgdisk -n 2:411648:0 -t 2:8300 -c 2:"Linux filesystem" /output/sparkos.img
+
+# Extract partition regions using dd
+echo "Extracting partition regions..."
+dd if=/output/sparkos.img of=/tmp/esp.img bs=512 skip=2048 count=409600 2>/dev/null
+
+# Calculate exact size for root partition
+ROOT_START=411648
+ROOT_END=$(sgdisk -p /output/sparkos.img 2>/dev/null | grep "^   2" | awk '{print $3}')
+ROOT_SIZE=$((ROOT_END - ROOT_START + 1))
+echo "Root partition: start=$ROOT_START, end=$ROOT_END, size=$ROOT_SIZE sectors"
+
+dd if=/output/sparkos.img of=/tmp/root.img bs=512 skip=$ROOT_START count=$ROOT_SIZE 2>/dev/null
+
+# Format ESP partition (FAT32)
+echo "Formatting EFI System Partition (FAT32)..."
+mkfs.vfat -F 32 -n "SPARKOSEFI" /tmp/esp.img >/dev/null
+
+# Populate ESP using mtools (no mount needed!)
+echo "Populating ESP with bootloader and kernel..."
+export MTOOLS_SKIP_CHECK=1
+mmd -i /tmp/esp.img ::/EFI
+mmd -i /tmp/esp.img ::/EFI/BOOT
+mmd -i /tmp/esp.img ::/boot
+mmd -i /tmp/esp.img ::/boot/grub
+mcopy -i /tmp/esp.img /staging/esp/EFI/BOOT/BOOTX64.EFI ::/EFI/BOOT/
+mcopy -i /tmp/esp.img /staging/esp/boot/vmlinuz ::/boot/
+if [ -f "/staging/esp/boot/initrd.img" ]; then
+    mcopy -i /tmp/esp.img /staging/esp/boot/initrd.img ::/boot/
+fi
+mcopy -i /tmp/esp.img /staging/esp/boot/grub/grub.cfg ::/boot/grub/
+
+# Format root partition (ext4) with directory contents (no mount needed!)
+echo "Formatting root partition (ext4) and populating..."
+mke2fs -t ext4 -L "SparkOS" -d /staging/root /tmp/root.img >/dev/null 2>&1
+
+# Write partitions back to image
+echo "Writing partitions to image..."
+dd if=/tmp/esp.img of=/output/sparkos.img bs=512 seek=2048 count=409600 conv=notrunc 2>/dev/null
+dd if=/tmp/root.img of=/output/sparkos.img bs=512 seek=$ROOT_START count=$ROOT_SIZE conv=notrunc 2>/dev/null
+
+# Clean up temporary files
+rm -f /tmp/esp.img /tmp/root.img
+
+# Finalize
 echo "Finalizing image..."
 sync
-umount /mnt/esp
-umount /mnt/root
-losetup -d $LOOP_DEV
 
 # Compress the image
 echo "Compressing image..."
