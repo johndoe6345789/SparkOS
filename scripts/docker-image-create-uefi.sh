@@ -87,7 +87,7 @@ dd if=/output/sparkos.img of=/tmp/esp.img bs=512 skip=2048 count=409600 2>/dev/n
 
 # Calculate exact size for root partition
 ROOT_START=411648
-ROOT_END=$(sgdisk -p /output/sparkos.img | grep "^  2" | awk '{print $3}')
+ROOT_END=$(sgdisk -p /output/sparkos.img 2>/dev/null | grep "^   2" | awk '{print $3}')
 ROOT_SIZE=$((ROOT_END - ROOT_START + 1))
 echo "Root partition: start=$ROOT_START, end=$ROOT_END, size=$ROOT_SIZE sectors"
 
