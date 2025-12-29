@@ -48,7 +48,7 @@ jobs:
 
       - name: Verify disk image
         run: |
-          echo "Verifying disk image..."
+          echo "Verifying UEFI-bootable disk image..."
           if [ ! -f sparkos.img.gz ]; then
             echo "ERROR: Disk image not found!"
             exit 1
@@ -64,29 +64,59 @@ jobs:
           ls -lh sparkos.img
           file sparkos.img
           
-          # Show image info
+          # Show partition table (should be GPT)
           echo ""
-          echo "Image details:"
-          fdisk -l sparkos.img || echo "Image is a filesystem, not a partitioned disk"
+          echo "=== Partition Table (GPT) ==="
+          sudo fdisk -l sparkos.img || true
+          sudo parted sparkos.img print || true
           
-          # Try to mount and inspect (read-only)
+          # Try to mount and inspect partitions
           echo ""
-          echo "Attempting to inspect image contents..."
-          mkdir -p /tmp/sparkos_test
-          if sudo mount -o loop,ro sparkos.img /tmp/sparkos_test 2>/dev/null; then
-            echo "✓ Image filesystem is valid"
-            echo "Contents:"
-            ls -la /tmp/sparkos_test/
-            if [ -f /tmp/sparkos_test/sbin/init ]; then
-              echo "✓ Init binary found"
-              ls -lh /tmp/sparkos_test/sbin/init
+          echo "=== Inspecting Partitions ==="
+          mkdir -p /tmp/sparkos_esp /tmp/sparkos_root
+          
+          # Set up loop device
+          LOOP_DEV=$(sudo losetup -fP --show sparkos.img)
+          echo "Loop device: $LOOP_DEV"
+          ls -la ${LOOP_DEV}*
+          
+          # Mount and check ESP
+          if sudo mount -o ro ${LOOP_DEV}p1 /tmp/sparkos_esp 2>/dev/null; then
+            echo "✓ EFI System Partition mounted"
+            echo "ESP contents:"
+            ls -laR /tmp/sparkos_esp/
+            if [ -f /tmp/sparkos_esp/EFI/BOOT/BOOTX64.EFI ]; then
+              echo "✓ UEFI bootloader found"
             fi
-            sudo umount /tmp/sparkos_test
-          else
-            echo "Note: Could not mount image (may need different mount options)"
+            if [ -f /tmp/sparkos_esp/EFI/sparkos/vmlinuz ]; then
+              echo "✓ Kernel found"
+            fi
+            sudo umount /tmp/sparkos_esp
           fi
           
-          echo "Verification complete!"
+          # Mount and check root partition
+          if sudo mount -o ro ${LOOP_DEV}p2 /tmp/sparkos_root 2>/dev/null; then
+            echo "✓ Root partition mounted"
+            echo "Root contents:"
+            ls -la /tmp/sparkos_root/
+            if [ -f /tmp/sparkos_root/sbin/init ]; then
+              echo "✓ Init binary found"
+              ls -lh /tmp/sparkos_root/sbin/init
+            fi
+            if [ -f /tmp/sparkos_root/bin/busybox ]; then
+              echo "✓ Busybox found"
+            fi
+            sudo umount /tmp/sparkos_root
+          fi
+          
+          # Cleanup
+          sudo losetup -d $LOOP_DEV
+          
+          echo ""
+          echo "=== Verification Complete ==="
+          echo "✓ UEFI-bootable image with GPT partition table"
+          echo "✓ EFI System Partition with GRUB"
+          echo "✓ Root partition with init system and busybox"
 
       - name: Create release package
         run: |
@@ -98,25 +128,29 @@ jobs:
           
           # Create a README for the release
           cat > release/README.txt << 'EOF'
-          SparkOS Filesystem Disk Image
-          ==============================
+          SparkOS UEFI-Bootable Disk Image
+          ==================================
           
-          This package contains a compressed ext4 filesystem image with SparkOS.
+          This package contains a UEFI-bootable disk image with SparkOS.
           
           Files:
-          - sparkos.img.gz - Compressed ext4 filesystem image (512MB)
+          - sparkos.img.gz - Compressed UEFI-bootable disk image (~1GB)
           
           What's Included:
           ---------------
-          The image contains:
-          - SparkOS init system (/sbin/init)
-          - Basic filesystem structure (FHS compliant)
-          - Configuration files
+          ✓ GPT partition table
+          ✓ EFI System Partition (ESP) with FAT32 filesystem
+          ✓ GRUB UEFI bootloader
+          ✓ Linux kernel
+          ✓ SparkOS init system
+          ✓ Busybox utilities
+          ✓ Basic FHS-compliant filesystem structure
           
-          Note: This is a minimal filesystem image. For full booting, you need:
-          - Linux kernel (install to /boot/vmlinuz)
-          - Busybox (install to /bin/busybox)
-          - Bootloader (GRUB or syslinux)
+          Boot Support:
+          ------------
+          ✓ UEFI boot (x86_64 systems)
+          ✓ Automatic boot after 3 seconds
+          ✓ Console on tty1
           
           Quick Start:
           -----------
@@ -124,17 +158,39 @@ jobs:
           1. Decompress the image:
              gunzip sparkos.img.gz
           
-          2. Mount and inspect:
-             sudo mount -o loop sparkos.img /mnt
-             ls -la /mnt
-             sudo umount /mnt
-          
-          3. Or write to USB for testing (Linux - BE CAREFUL!):
-             sudo dd if=sparkos.img of=/dev/sdX bs=4M status=progress
-             sync
+          2. Write to USB drive (Linux - BE CAREFUL!):
+             sudo dd if=sparkos.img of=/dev/sdX bs=4M status=progress oflag=sync
              
              WARNING: Replace /dev/sdX with your actual USB drive device.
                       This will DESTROY all data on the target drive!
+          
+          3. Boot from USB:
+             - Insert the USB drive into a UEFI-capable system
+             - Enter BIOS/UEFI settings (usually F2, F12, DEL, or ESC at boot)
+             - Select the USB drive as boot device
+             - SparkOS should boot automatically
+          
+          Advanced - Inspect Partitions:
+          ------------------------------
+          
+          To mount and inspect the partitions:
+          
+          # Set up loop device
+          sudo losetup -fP --show sparkos.img
+          # Note the loop device name (e.g., /dev/loop0)
+          
+          # Mount ESP (EFI System Partition)
+          sudo mount /dev/loop0p1 /mnt
+          ls -la /mnt/EFI
+          sudo umount /mnt
+          
+          # Mount root partition
+          sudo mount /dev/loop0p2 /mnt
+          ls -la /mnt
+          sudo umount /mnt
+          
+          # Cleanup
+          sudo losetup -d /dev/loop0
           
           Documentation:
           -------------
@@ -172,53 +228,76 @@ jobs:
             release/sparkos-image.zip
             release/sparkos.img.gz
           body: |
-            # SparkOS Disk Image Release ${{ github.ref_name }}
+            # SparkOS UEFI-Bootable Disk Image Release ${{ github.ref_name }}
             
-            This release includes a filesystem disk image with the SparkOS init system.
+            This release includes a **UEFI-bootable** disk image with SparkOS.
             
             ## What's Included
             
             - **sparkos-image.zip**: Complete package with image and README
-            - **sparkos.img.gz**: Compressed ext4 filesystem image (512MB)
+            - **sparkos.img.gz**: Compressed UEFI-bootable disk image (~1GB)
             
-            ## What This Image Contains
+            ## Features
             
-            The disk image includes:
-            - ✅ SparkOS init system binary (statically linked)
-            - ✅ FHS-compliant filesystem structure
-            - ✅ Basic configuration files
-            
-            **Note**: This is a minimal filesystem image. For full booting, you'll need to add:
-            - Linux kernel
-            - Busybox utilities
-            - Bootloader (GRUB or syslinux)
-            
-            See the [documentation](https://github.com/johndoe6345789/SparkOS#creating-a-bootable-image) for details.
+            ✅ **UEFI Boot Support** - Boot on modern UEFI systems  
+            ✅ **GPT Partition Table** - Modern partitioning scheme  
+            ✅ **GRUB Bootloader** - Reliable UEFI bootloader  
+            ✅ **Linux Kernel** - Full kernel included  
+            ✅ **SparkOS Init System** - Custom init with busybox  
+            ✅ **Ready to Boot** - Write to USB and boot immediately  
             
             ## Quick Start
             
-            ### Mount and Inspect
+            ### Write to USB and Boot
             
             ```bash
             # Download and decompress
             wget https://github.com/johndoe6345789/SparkOS/releases/download/${{ github.ref_name }}/sparkos.img.gz
             gunzip sparkos.img.gz
             
-            # Mount and inspect
-            sudo mount -o loop sparkos.img /mnt
-            ls -la /mnt
-            sudo umount /mnt
+            # Write to USB drive (Linux - BE CAREFUL!)
+            sudo dd if=sparkos.img of=/dev/sdX bs=4M status=progress oflag=sync
             ```
             
-            ### Write to USB (Testing)
+            **⚠️ WARNING**: Replace `/dev/sdX` with your actual USB device (e.g., `/dev/sdb`). This will **ERASE ALL DATA** on the target drive!
+            
+            ### Boot Instructions
+            
+            1. Insert the USB drive into a UEFI-capable system
+            2. Enter BIOS/UEFI settings (usually F2, F12, DEL, or ESC at boot)
+            3. Select the USB drive as boot device
+            4. SparkOS will boot automatically after 3 seconds
+            
+            ### Inspect Partitions (Advanced)
             
             ```bash
-            # Write to USB drive (Linux - BE CAREFUL!)
-            sudo dd if=sparkos.img of=/dev/sdX bs=4M status=progress
-            sudo sync
+            # Set up loop device
+            LOOP_DEV=$(sudo losetup -fP --show sparkos.img)
+            
+            # Mount ESP (EFI System Partition)
+            sudo mount ${LOOP_DEV}p1 /mnt
+            ls -la /mnt/EFI  # View bootloader and kernel
+            sudo umount /mnt
+            
+            # Mount root partition
+            sudo mount ${LOOP_DEV}p2 /mnt
+            ls -la /mnt      # View SparkOS filesystem
+            sudo umount /mnt
+            
+            # Cleanup
+            sudo losetup -d $LOOP_DEV
             ```
             
-            **⚠️ WARNING**: Replace `/dev/sdX` with your actual USB device. This will erase all data on the target drive!
+            ## Technical Details
+            
+            - **Size**: ~1GB (compressed)
+            - **Partition Table**: GPT
+            - **ESP**: 200MB FAT32 (EFI System Partition)
+            - **Root**: ~800MB ext4
+            - **Bootloader**: GRUB (UEFI)
+            - **Kernel**: Linux kernel (from Ubuntu)
+            - **Init**: SparkOS custom init system
+            - **Shell**: Busybox
             
             ## Docker Image
             

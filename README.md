@@ -45,9 +45,9 @@ To create bootable images (optional):
 
 ## Quick Start
 
-### Using Pre-built Disk Image (Easiest for USB/Testing)
+### Using UEFI-Bootable Disk Image (Recommended - Boot from USB)
 
-Download the filesystem image from the [GitHub Releases page](https://github.com/johndoe6345789/SparkOS/releases):
+Download the UEFI-bootable image from the [GitHub Releases page](https://github.com/johndoe6345789/SparkOS/releases):
 
 ```bash
 # Download the disk image (replace VERSION with actual version, e.g., v1.0.0)
@@ -56,24 +56,24 @@ wget https://github.com/johndoe6345789/SparkOS/releases/download/VERSION/sparkos
 # Decompress the image
 gunzip sparkos.img.gz
 
-# Mount and inspect
-sudo mount -o loop sparkos.img /mnt
-ls -la /mnt
-sudo umount /mnt
-
-# Or write to USB drive for testing (Linux - BE CAREFUL!)
-sudo dd if=sparkos.img of=/dev/sdX bs=4M status=progress
-sudo sync
+# Write to USB drive (Linux - BE CAREFUL!)
+sudo dd if=sparkos.img of=/dev/sdX bs=4M status=progress oflag=sync
 ```
 
 **⚠️ WARNING**: Replace `/dev/sdX` with your actual USB device (e.g., `/dev/sdb`). This will **DESTROY ALL DATA** on the target drive!
 
-**Note**: The disk image contains the init system and filesystem structure but requires additional components (kernel, busybox, bootloader) for full booting. See [Creating a Bootable Image](#creating-a-bootable-image) section.
+**Boot Instructions:**
+1. Insert the USB drive into a UEFI-capable system
+2. Enter BIOS/UEFI settings (usually F2, F12, DEL, or ESC at boot)
+3. Select the USB drive as boot device
+4. SparkOS will boot automatically
 
-The disk image includes:
-- Pre-compiled init binary
-- Basic filesystem structure (FHS compliant)
-- Configuration files
+The UEFI-bootable disk image includes:
+- ✅ **UEFI boot support** with GRUB bootloader
+- ✅ **GPT partition table** with ESP (EFI System Partition)
+- ✅ **Linux kernel** ready to boot
+- ✅ **SparkOS init system** and busybox utilities
+- ✅ **Ready to boot** - No additional setup required
 
 ### Using Pre-built Binary Package
 
@@ -162,25 +162,32 @@ make init
 make install
 ```
 
-### Creating a Bootable Image
+### Creating a UEFI-Bootable Image
 
 **Using Docker (Recommended - No Root Required):**
 
-Build disk images easily using Docker without needing root privileges on your host:
+Build UEFI-bootable disk images easily using Docker without needing root privileges on your host:
 
 ```bash
-# Build the disk image using Docker
+# Build the UEFI-bootable disk image using Docker
 make image-docker
 
 # Or use the script directly
 ./scripts/build-image.sh
 
-# The compressed image will be in release/sparkos.img.gz
+# The compressed UEFI-bootable image will be in release/sparkos.img.gz
 ```
+
+This creates a complete UEFI-bootable image with:
+- GPT partition table
+- EFI System Partition (ESP) with FAT32
+- GRUB UEFI bootloader
+- Linux kernel
+- SparkOS init system and busybox
 
 **Traditional Method (Requires Root):**
 
-⚠️ **Warning**: This method requires root privileges and proper tools.
+⚠️ **Warning**: This method is for creating custom partitioned images and requires root privileges.
 
 ```bash
 # Install required tools (Ubuntu/Debian)
