@@ -54,16 +54,23 @@ RUN mkdir -p /output && \
     echo "spark:x:1000:" >> /mnt/img/etc/group && \
     # Create README
     cat > /mnt/img/README.txt << 'EOF' && \
-SparkOS Minimal Image
+SparkOS Minimal Filesystem Image
 
-This is a minimal SparkOS filesystem image containing the init system.
+This is a minimal ext4 filesystem image containing the SparkOS init system.
+This is NOT a fully bootable image - it requires additional components.
 
-To make this fully bootable, you need to:
-1. Install a Linux kernel to /boot/vmlinuz
-2. Install busybox to /bin/busybox and create symlinks
-3. Install a bootloader (GRUB or syslinux)
+What's included:
+- SparkOS init binary (/sbin/init)
+- Basic FHS-compliant directory structure
+- Basic configuration files
 
-This image can be mounted and the init binary extracted:
+To make this fully bootable, you need to add:
+1. Linux kernel (install to /boot/vmlinuz)
+2. Busybox (install to /bin/busybox and create symlinks)
+3. Bootloader (GRUB or syslinux)
+4. Required libraries (if using dynamically linked binaries)
+
+This image can be mounted to extract the init binary or inspect the structure:
   sudo mount -o loop sparkos.img /mnt
   cp /mnt/sbin/init ./
   sudo umount /mnt

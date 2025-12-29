@@ -45,9 +45,9 @@ To create bootable images (optional):
 
 ## Quick Start
 
-### Using Pre-built Disk Image (Easiest for USB Boot)
+### Using Pre-built Disk Image (Easiest for USB/Testing)
 
-Download the bootable disk image from the [GitHub Releases page](https://github.com/johndoe6345789/SparkOS/releases):
+Download the filesystem image from the [GitHub Releases page](https://github.com/johndoe6345789/SparkOS/releases):
 
 ```bash
 # Download the disk image (replace VERSION with actual version, e.g., v1.0.0)
@@ -56,18 +56,24 @@ wget https://github.com/johndoe6345789/SparkOS/releases/download/VERSION/sparkos
 # Decompress the image
 gunzip sparkos.img.gz
 
-# Write to USB drive (Linux - BE CAREFUL!)
+# Mount and inspect
+sudo mount -o loop sparkos.img /mnt
+ls -la /mnt
+sudo umount /mnt
+
+# Or write to USB drive for testing (Linux - BE CAREFUL!)
 sudo dd if=sparkos.img of=/dev/sdX bs=4M status=progress
 sudo sync
 ```
 
 **⚠️ WARNING**: Replace `/dev/sdX` with your actual USB device (e.g., `/dev/sdb`). This will **DESTROY ALL DATA** on the target drive!
 
+**Note**: The disk image contains the init system and filesystem structure but requires additional components (kernel, busybox, bootloader) for full booting. See [Creating a Bootable Image](#creating-a-bootable-image) section.
+
 The disk image includes:
 - Pre-compiled init binary
 - Basic filesystem structure (FHS compliant)
 - Configuration files
-- Ready to write to USB drives
 
 ### Using Pre-built Binary Package
 

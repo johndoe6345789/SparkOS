@@ -98,13 +98,25 @@ jobs:
           
           # Create a README for the release
           cat > release/README.txt << 'EOF'
-          SparkOS Bootable Disk Image
-          ===========================
+          SparkOS Filesystem Disk Image
+          ==============================
           
-          This package contains a compressed bootable disk image for SparkOS.
+          This package contains a compressed ext4 filesystem image with SparkOS.
           
           Files:
           - sparkos.img.gz - Compressed ext4 filesystem image (512MB)
+          
+          What's Included:
+          ---------------
+          The image contains:
+          - SparkOS init system (/sbin/init)
+          - Basic filesystem structure (FHS compliant)
+          - Configuration files
+          
+          Note: This is a minimal filesystem image. For full booting, you need:
+          - Linux kernel (install to /boot/vmlinuz)
+          - Busybox (install to /bin/busybox)
+          - Bootloader (GRUB or syslinux)
           
           Quick Start:
           -----------
@@ -112,32 +124,20 @@ jobs:
           1. Decompress the image:
              gunzip sparkos.img.gz
           
-          2. Write to a USB drive (Linux):
+          2. Mount and inspect:
+             sudo mount -o loop sparkos.img /mnt
+             ls -la /mnt
+             sudo umount /mnt
+          
+          3. Or write to USB for testing (Linux - BE CAREFUL!):
              sudo dd if=sparkos.img of=/dev/sdX bs=4M status=progress
              sync
              
              WARNING: Replace /dev/sdX with your actual USB drive device.
                       This will DESTROY all data on the target drive!
           
-          3. Or mount and inspect:
-             sudo mount -o loop sparkos.img /mnt
-             ls -la /mnt
-             sudo umount /mnt
-          
-          Image Contents:
-          --------------
-          The image contains:
-          - SparkOS init system (/sbin/init)
-          - Basic filesystem structure (FHS compliant)
-          - Configuration files
-          
-          To make fully bootable:
-          ----------------------
-          The image needs additional components for booting:
-          1. Linux kernel (install to /boot/vmlinuz)
-          2. Busybox (install to /bin/busybox)
-          3. Bootloader (GRUB or syslinux)
-          
+          Documentation:
+          -------------
           See the full documentation at:
           https://github.com/johndoe6345789/SparkOS
           
@@ -148,9 +148,9 @@ jobs:
           EOF
           
           # Create a ZIP with the image and README
-          cd release
+          cd release || exit 1
           zip sparkos-image.zip sparkos.img.gz README.txt
-          cd ..
+          cd .. || exit 1
           
           echo "Release package created!"
           ls -lh release/
@@ -174,39 +174,51 @@ jobs:
           body: |
             # SparkOS Disk Image Release ${{ github.ref_name }}
             
-            This release includes a bootable disk image that can be written to USB drives.
+            This release includes a filesystem disk image with the SparkOS init system.
             
             ## What's Included
             
             - **sparkos-image.zip**: Complete package with image and README
-            - **sparkos.img.gz**: Compressed disk image (512MB ext4 filesystem)
+            - **sparkos.img.gz**: Compressed ext4 filesystem image (512MB)
+            
+            ## What This Image Contains
+            
+            The disk image includes:
+            - ✅ SparkOS init system binary (statically linked)
+            - ✅ FHS-compliant filesystem structure
+            - ✅ Basic configuration files
+            
+            **Note**: This is a minimal filesystem image. For full booting, you'll need to add:
+            - Linux kernel
+            - Busybox utilities
+            - Bootloader (GRUB or syslinux)
+            
+            See the [documentation](https://github.com/johndoe6345789/SparkOS#creating-a-bootable-image) for details.
             
             ## Quick Start
             
-            ### Download and Write to USB
+            ### Mount and Inspect
             
             ```bash
-            # Download the compressed image
+            # Download and decompress
             wget https://github.com/johndoe6345789/SparkOS/releases/download/${{ github.ref_name }}/sparkos.img.gz
-            
-            # Decompress
             gunzip sparkos.img.gz
             
+            # Mount and inspect
+            sudo mount -o loop sparkos.img /mnt
+            ls -la /mnt
+            sudo umount /mnt
+            ```
+            
+            ### Write to USB (Testing)
+            
+            ```bash
             # Write to USB drive (Linux - BE CAREFUL!)
             sudo dd if=sparkos.img of=/dev/sdX bs=4M status=progress
             sudo sync
             ```
             
             **⚠️ WARNING**: Replace `/dev/sdX` with your actual USB device. This will erase all data on the target drive!
-            
-            ### Inspect the Image
-            
-            ```bash
-            # Mount and inspect
-            sudo mount -o loop sparkos.img /mnt
-            ls -la /mnt
-            sudo umount /mnt
-            ```
             
             ## Docker Image
             
