@@ -23,12 +23,14 @@ if command -v busybox >/dev/null 2>&1; then
     fi
     echo ""
     echo "Available BusyBox applets (sample):"
-    busybox --list | head -n 20
-    echo "  ... and $(busybox --list | wc -l) total applets"
+    # Store applet list once to avoid redundant executions
+    APPLET_LIST=$(busybox --list)
+    echo "$APPLET_LIST" | head -n 20
+    echo "  ... and $(echo "$APPLET_LIST" | wc -l) total applets"
     echo ""
     echo "Networking applets (required for SparkOS):"
     for cmd in udhcpc ip ifconfig ping wget; do
-        if busybox --list | grep -q "^${cmd}$"; then
+        if echo "$APPLET_LIST" | grep -q "^${cmd}$"; then
             echo "  ✓ $cmd"
         else
             echo "  ✗ $cmd (NOT FOUND)"
