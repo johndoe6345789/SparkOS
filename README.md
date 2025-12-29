@@ -126,7 +126,14 @@ The Docker image includes:
 - Pre-built init system binary
 - Minimal root filesystem structure
 - Test environment for validation
+- **BusyBox shell and utilities**: Alpine Linux base provides BusyBox (verified on startup)
 - **Multi-architecture support**: Available for both AMD64 (x86_64) and ARM64 (aarch64) architectures
+
+When you run the Docker image, it automatically verifies:
+- BusyBox version and installation
+- Available BusyBox applets (sh, ls, cat, etc.)
+- Required networking tools (udhcpc, ip, ping, wget)
+- Custom init system binary
 
 Images are automatically built and published to [GitHub Container Registry](https://github.com/johndoe6345789/SparkOS/pkgs/container/sparkos) on every push to main branch.
 
