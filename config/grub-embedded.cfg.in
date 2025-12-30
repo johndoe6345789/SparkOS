@@ -7,5 +7,7 @@ if [ -e /boot/grub/grub.cfg ]; then
 else
     echo "Error: Could not find /boot/grub/grub.cfg"
     echo "Press any key to enter GRUB command line..."
+    # Sleep for a very long time (interruptible by any key press)
+    # This provides an effective "wait for keypress" in GRUB
     sleep --verbose --interruptible 99999
 fi

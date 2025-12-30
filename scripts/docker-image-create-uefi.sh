@@ -43,8 +43,8 @@ printf '%s\n' \
     'set timeout=3' \
     'set default=0' \
     '' \
-    'menuentry "SparkOS (Immutable Base + Overlay)" {' \
-    '    linux /boot/vmlinuz root=LABEL=SparkOS ro init=/sbin/init console=tty1 quiet' \
+    "menuentry \"SparkOS (Immutable Base + Overlay)\" {" \
+    "    linux /boot/vmlinuz root=LABEL=$ROOT_LABEL ro init=/sbin/init console=tty1 quiet" \
     '}' \
     > /staging/esp/boot/grub/grub.cfg
 
@@ -120,7 +120,7 @@ mcopy -i /tmp/esp.img /staging/esp/boot/grub/grub.cfg ::/boot/grub/
 
 # Format root partition (ext4) with directory contents (no mount needed!)
 echo "Formatting root partition (ext4) and populating..."
-mke2fs -t ext4 -L "SparkOS" -d /staging/root /tmp/root.img >/dev/null 2>&1
+mke2fs -t ext4 -L "$ROOT_LABEL" -d /staging/root /tmp/root.img >/dev/null 2>&1
 
 # Write partitions back to image
 echo "Writing partitions to image..."
