@@ -13,13 +13,28 @@ echo "Preparing ESP contents..."
 mkdir -p /staging/esp/EFI/BOOT
 mkdir -p /staging/esp/boot/grub
 
-# Create GRUB EFI binary using grub-mkstandalone
+# Create minimal embedded GRUB configuration that searches for external config
+cat > /tmp/embedded_grub.cfg << 'EOF'
+# Embedded bootstrap configuration for GRUB
+# This config tells GRUB where to find the real configuration file
+
+search --no-floppy --set=root --label SPARKOSEFI
+if [ -e /boot/grub/grub.cfg ]; then
+    configfile /boot/grub/grub.cfg
+else
+    echo "Error: Could not find /boot/grub/grub.cfg"
+    echo "Press any key to enter GRUB command line..."
+    read
+fi
+EOF
+
+# Create GRUB EFI binary using grub-mkstandalone with embedded bootstrap config
 grub-mkstandalone \
     --format=x86_64-efi \
     --output=/staging/esp/EFI/BOOT/BOOTX64.EFI \
     --locales="" \
     --fonts="" \
-    "boot/grub/grub.cfg=/dev/null"
+    "boot/grub/grub.cfg=/tmp/embedded_grub.cfg"
 
 # Find the kernel
 KERNEL_PATH=$(find /kernel/boot -name "vmlinuz-*" | head -1)
