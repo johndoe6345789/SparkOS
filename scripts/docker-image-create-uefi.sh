@@ -4,6 +4,10 @@
 
 set -e
 
+# Configuration
+ESP_LABEL="SPARKOSEFI"
+ROOT_LABEL="SparkOS"
+
 mkdir -p /output /staging/esp /staging/root
 
 echo "=== Creating UEFI-bootable SparkOS image with GRUB ==="
@@ -13,13 +17,16 @@ echo "Preparing ESP contents..."
 mkdir -p /staging/esp/EFI/BOOT
 mkdir -p /staging/esp/boot/grub
 
-# Create GRUB EFI binary using grub-mkstandalone
+# Create minimal embedded GRUB configuration from template
+sed "s/@ESP_LABEL@/$ESP_LABEL/g" /build/config/grub-embedded.cfg.in > /tmp/embedded_grub.cfg
+
+# Create GRUB EFI binary using grub-mkstandalone with embedded bootstrap config
 grub-mkstandalone \
     --format=x86_64-efi \
     --output=/staging/esp/EFI/BOOT/BOOTX64.EFI \
     --locales="" \
     --fonts="" \
-    "boot/grub/grub.cfg=/dev/null"
+    "boot/grub/grub.cfg=/tmp/embedded_grub.cfg"
 
 # Find the kernel
 KERNEL_PATH=$(find /kernel/boot -name "vmlinuz-*" | head -1)
@@ -36,8 +43,8 @@ printf '%s\n' \
     'set timeout=3' \
     'set default=0' \
     '' \
-    'menuentry "SparkOS (Immutable Base + Overlay)" {' \
-    '    linux /boot/vmlinuz root=LABEL=SparkOS ro init=/sbin/init console=tty1 quiet' \
+    "menuentry \"SparkOS (Immutable Base + Overlay)\" {" \
+    "    linux /boot/vmlinuz root=LABEL=$ROOT_LABEL ro init=/sbin/init console=tty1 quiet" \
     '}' \
     > /staging/esp/boot/grub/grub.cfg
 
@@ -95,7 +102,7 @@ dd if=/output/sparkos.img of=/tmp/root.img bs=512 skip=$ROOT_START count=$ROOT_S
 
 # Format ESP partition (FAT32)
 echo "Formatting EFI System Partition (FAT32)..."
-mkfs.vfat -F 32 -n "SPARKOSEFI" /tmp/esp.img >/dev/null
+mkfs.vfat -F 32 -n "$ESP_LABEL" /tmp/esp.img >/dev/null
 
 # Populate ESP using mtools (no mount needed!)
 echo "Populating ESP with bootloader and kernel..."
@@ -113,7 +120,7 @@ mcopy -i /tmp/esp.img /staging/esp/boot/grub/grub.cfg ::/boot/grub/
 
 # Format root partition (ext4) with directory contents (no mount needed!)
 echo "Formatting root partition (ext4) and populating..."
-mke2fs -t ext4 -L "SparkOS" -d /staging/root /tmp/root.img >/dev/null 2>&1
+mke2fs -t ext4 -L "$ROOT_LABEL" -d /staging/root /tmp/root.img >/dev/null 2>&1
 
 # Write partitions back to image
 echo "Writing partitions to image..."
