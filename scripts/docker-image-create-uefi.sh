@@ -4,6 +4,10 @@
 
 set -e
 
+# Configuration
+ESP_LABEL="SPARKOSEFI"
+ROOT_LABEL="SparkOS"
+
 mkdir -p /output /staging/esp /staging/root
 
 echo "=== Creating UEFI-bootable SparkOS image with GRUB ==="
@@ -13,20 +17,8 @@ echo "Preparing ESP contents..."
 mkdir -p /staging/esp/EFI/BOOT
 mkdir -p /staging/esp/boot/grub
 
-# Create minimal embedded GRUB configuration that searches for external config
-cat > /tmp/embedded_grub.cfg << 'EOF'
-# Embedded bootstrap configuration for GRUB
-# This config tells GRUB where to find the real configuration file
-
-search --no-floppy --set=root --label SPARKOSEFI
-if [ -e /boot/grub/grub.cfg ]; then
-    configfile /boot/grub/grub.cfg
-else
-    echo "Error: Could not find /boot/grub/grub.cfg"
-    echo "Press any key to enter GRUB command line..."
-    read
-fi
-EOF
+# Create minimal embedded GRUB configuration from template
+sed "s/@ESP_LABEL@/$ESP_LABEL/g" /build/config/grub-embedded.cfg.in > /tmp/embedded_grub.cfg
 
 # Create GRUB EFI binary using grub-mkstandalone with embedded bootstrap config
 grub-mkstandalone \
@@ -110,7 +102,7 @@ dd if=/output/sparkos.img of=/tmp/root.img bs=512 skip=$ROOT_START count=$ROOT_S
 
 # Format ESP partition (FAT32)
 echo "Formatting EFI System Partition (FAT32)..."
-mkfs.vfat -F 32 -n "SPARKOSEFI" /tmp/esp.img >/dev/null
+mkfs.vfat -F 32 -n "$ESP_LABEL" /tmp/esp.img >/dev/null
 
 # Populate ESP using mtools (no mount needed!)
 echo "Populating ESP with bootloader and kernel..."
