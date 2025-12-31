@@ -27,7 +27,9 @@ grub-mkstandalone \
     --output=/staging/esp/EFI/BOOT/BOOTX64.EFI \
     --locales="" \
     --fonts="" \
-    --modules="part_gpt part_msdos fat ext2 normal linux all_video video_bochs video_cirrus gfxterm search search_label search_fs_uuid" \
+    --modules="part_gpt part_msdos fat ext2 normal linux \
+               all_video video_bochs video_cirrus gfxterm \
+               search search_label search_fs_uuid" \
     "boot/grub/grub.cfg=/tmp/embedded_grub.cfg"
 
 # Find the kernel
@@ -70,22 +72,16 @@ echo "SparkOS Boot Menu - Starting in \$timeout seconds..."
 menuentry "SparkOS" {
     echo "Loading SparkOS kernel..."
     linux /boot/vmlinuz root=LABEL=$ROOT_LABEL ro init=/sbin/init console=tty0 console=ttyS0,115200n8
-    echo "Booting..."
-    boot
 }
 
 menuentry "SparkOS (Verbose Mode)" {
     echo "Loading SparkOS kernel in verbose mode..."
     linux /boot/vmlinuz root=LABEL=$ROOT_LABEL ro init=/sbin/init console=tty0 console=ttyS0,115200n8 debug loglevel=7
-    echo "Booting in verbose mode..."
-    boot
 }
 
 menuentry "SparkOS (Recovery Mode)" {
     echo "Loading SparkOS kernel in recovery mode..."
     linux /boot/vmlinuz root=LABEL=$ROOT_LABEL rw init=/bin/sh console=tty0 console=ttyS0,115200n8
-    echo "Booting into recovery shell..."
-    boot
 }
 EOF
 
