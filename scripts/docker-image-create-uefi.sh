@@ -42,48 +42,8 @@ echo "Copying kernel to staging..."
 cp $KERNEL_PATH /staging/esp/boot/vmlinuz
 if [ -f "$INITRD_PATH" ]; then cp $INITRD_PATH /staging/esp/boot/initrd.img; fi
 
-# Create GRUB configuration for immutable root with overlay
-cat > /staging/esp/boot/grub/grub.cfg << EOF
-# GRUB Configuration for SparkOS
-
-# Load essential modules
-insmod part_gpt
-insmod fat
-insmod ext2
-insmod linux
-insmod all_video
-insmod video_bochs
-insmod video_cirrus
-insmod gfxterm
-
-# Set terminal and video modes
-terminal_input console
-terminal_output console
-set gfxmode=auto
-set gfxpayload=keep
-
-# Boot menu settings
-set timeout=5
-set default=0
-
-# Show countdown message
-echo "SparkOS Boot Menu - Starting in \$timeout seconds..."
-
-menuentry "SparkOS" {
-    echo "Loading SparkOS kernel..."
-    linux /boot/vmlinuz root=LABEL=$ROOT_LABEL ro init=/sbin/init console=tty0 console=ttyS0,115200n8
-}
-
-menuentry "SparkOS (Verbose Mode)" {
-    echo "Loading SparkOS kernel in verbose mode..."
-    linux /boot/vmlinuz root=LABEL=$ROOT_LABEL ro init=/sbin/init console=tty0 console=ttyS0,115200n8 debug loglevel=7
-}
-
-menuentry "SparkOS (Recovery Mode)" {
-    echo "Loading SparkOS kernel in recovery mode..."
-    linux /boot/vmlinuz root=LABEL=$ROOT_LABEL rw init=/bin/sh console=tty0 console=ttyS0,115200n8
-}
-EOF
+# Create GRUB configuration from template
+sed "s/@ROOT_LABEL@/$ROOT_LABEL/g" /build/config/grub.cfg.in > /staging/esp/boot/grub/grub.cfg
 
 # Prepare root filesystem contents
 echo "Preparing root filesystem..."
