@@ -21,11 +21,15 @@ mkdir -p /staging/esp/boot/grub
 sed "s/@ESP_LABEL@/$ESP_LABEL/g" /build/config/grub-embedded.cfg.in > /tmp/embedded_grub.cfg
 
 # Create GRUB EFI binary using grub-mkstandalone with embedded bootstrap config
+# Include essential modules for better hardware compatibility
 grub-mkstandalone \
     --format=x86_64-efi \
     --output=/staging/esp/EFI/BOOT/BOOTX64.EFI \
     --locales="" \
     --fonts="" \
+    --modules="part_gpt part_msdos fat ext2 normal linux \
+               all_video video_bochs video_cirrus gfxterm \
+               search search_label search_fs_uuid" \
     "boot/grub/grub.cfg=/tmp/embedded_grub.cfg"
 
 # Find the kernel
@@ -38,15 +42,8 @@ echo "Copying kernel to staging..."
 cp $KERNEL_PATH /staging/esp/boot/vmlinuz
 if [ -f "$INITRD_PATH" ]; then cp $INITRD_PATH /staging/esp/boot/initrd.img; fi
 
-# Create GRUB configuration for immutable root with overlay
-printf '%s\n' \
-    'set timeout=3' \
-    'set default=0' \
-    '' \
-    "menuentry \"SparkOS (Immutable Base + Overlay)\" {" \
-    "    linux /boot/vmlinuz root=LABEL=$ROOT_LABEL ro init=/sbin/init console=tty1 quiet" \
-    '}' \
-    > /staging/esp/boot/grub/grub.cfg
+# Create GRUB configuration from template
+sed "s/@ROOT_LABEL@/$ROOT_LABEL/g" /build/config/grub.cfg.in > /staging/esp/boot/grub/grub.cfg
 
 # Prepare root filesystem contents
 echo "Preparing root filesystem..."
