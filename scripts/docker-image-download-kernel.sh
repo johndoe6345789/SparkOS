@@ -26,7 +26,7 @@ apt-get download "$KERNEL_PKG"
 
 # Extract the kernel package to /kernel
 echo "Extracting kernel..."
-dpkg -x ${KERNEL_PKG}*.deb /kernel
+dpkg -x "${KERNEL_PKG}"*.deb /kernel
 
 # Verify kernel was extracted
 if [ ! -d /kernel/boot ]; then
@@ -68,4 +68,4 @@ echo "Initrd generated successfully: /kernel/boot/initrd.img-${KERNEL_VERSION}"
 ls -lh /kernel/boot/
 
 # Clean up
-rm -rf /var/lib/apt/lists/* ${KERNEL_PKG}*.deb
+rm -rf /var/lib/apt/lists/* "${KERNEL_PKG}"*.deb
