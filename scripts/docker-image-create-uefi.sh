@@ -40,7 +40,15 @@ INITRD_PATH=$(find /kernel/boot -name "initrd.img-*" | head -1)
 # Copy kernel and initrd to staging
 echo "Copying kernel to staging..."
 cp $KERNEL_PATH /staging/esp/boot/vmlinuz
-if [ -f "$INITRD_PATH" ]; then cp $INITRD_PATH /staging/esp/boot/initrd.img; fi
+
+# Ensure initrd exists (required for booting)
+if [ ! -f "$INITRD_PATH" ]; then
+    echo "ERROR: initrd not found. The kernel requires an initrd to boot."
+    echo "Expected to find: initrd.img-* in /kernel/boot/"
+    exit 1
+fi
+echo "Copying initrd to staging..."
+cp $INITRD_PATH /staging/esp/boot/initrd.img
 
 # Create GRUB configuration from template
 sed "s/@ROOT_LABEL@/$ROOT_LABEL/g" /build/config/grub.cfg.in > /staging/esp/boot/grub/grub.cfg
@@ -110,9 +118,7 @@ mmd -i /tmp/esp.img ::/boot
 mmd -i /tmp/esp.img ::/boot/grub
 mcopy -i /tmp/esp.img /staging/esp/EFI/BOOT/BOOTX64.EFI ::/EFI/BOOT/
 mcopy -i /tmp/esp.img /staging/esp/boot/vmlinuz ::/boot/
-if [ -f "/staging/esp/boot/initrd.img" ]; then
-    mcopy -i /tmp/esp.img /staging/esp/boot/initrd.img ::/boot/
-fi
+mcopy -i /tmp/esp.img /staging/esp/boot/initrd.img ::/boot/
 mcopy -i /tmp/esp.img /staging/esp/boot/grub/grub.cfg ::/boot/grub/
 
 # Format root partition (ext4) with directory contents (no mount needed!)
