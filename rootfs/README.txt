@@ -1,43 +1,41 @@
 SparkOS Root Filesystem
 =======================
 
-This is the root filesystem for SparkOS, a minimal Linux distribution.
+This is the root filesystem for SparkOS, a GUI-only Linux distribution.
 
-Minimal System Packages:
-  - Linux Kernel (with networking support)
-  - SparkOS Init System (custom)
-  - Busybox (shell, utilities, networking)
-  - Git (for installing spark CLI)
-  - Sudo (privilege elevation)
+SparkOS Philosophy:
+  - GUI-Only: No CLI tools, no shell, no Unix utilities
+  - Network-First: Networking integrated into Qt6 GUI
+  - Direct Kernel Interface: Qt6 communicates directly with Linux kernel
+  - No Unix Baggage: No users, groups, passwords, or authentication
+
+Minimal System:
+  - Linux Kernel (with networking and framebuffer support)
+  - SparkOS Init System (completely self-contained, no dependencies)
+  - Qt6 GUI Application (all user interaction)
 
 Directory Structure:
-  /bin, /sbin       - Essential binaries
-  /etc              - Configuration files
+  /sbin             - Init binary only
+  /etc              - Minimal configuration files
   /proc, /sys, /dev - Kernel interfaces
   /tmp              - Temporary files
-  /usr              - User programs
-  /var              - Variable data
+  /usr              - Qt6 GUI application and libraries
+  /var              - Variable data (overlay mount)
   /root             - Root home directory
-  /home/spark       - Default user home directory
-
-Default User:
-  Username: spark (UID 1000)
-  Home: /home/spark
-  Sudo: Full access without password
-  Scripts: ~/clone-sparkos.sh for installing spark CLI
 
 Network Configuration:
-  /etc/network/interfaces - Wired network (DHCP)
-  /etc/resolv.conf        - DNS configuration (8.8.8.8, 1.1.1.1)
-  /sbin/init-network      - Network initialization script
+  - Managed entirely through Qt6 GUI
+  - Init brings up interfaces via direct ioctl calls
+  - DHCP and network management handled by Qt6 NetworkManager
+  - /etc/resolv.conf provides fallback DNS servers
 
-Bootstrap Process:
-  1. System boots as 'spark' user with wired networking (DHCP)
-  2. Run ~/clone-sparkos.sh to install spark CLI
-  3. Use spark CLI to configure WiFi and system
-  4. Install additional packages via spark CLI
-  5. Use 'sudo' for any root-level operations
+Boot Process:
+  1. Linux kernel loads
+  2. Init (PID 1) mounts filesystems
+  3. Init brings up network interfaces
+  4. Init spawns Qt6 GUI application
+  5. All user interaction through GUI
 
-Note: This is a minimal system. You'll need to populate /bin and /usr/bin
-with actual binaries (busybox, git, sudo) from a proper Linux system
-or by cross-compiling.
+Note: This is a minimal, GUI-only system.
+      No shell, no CLI tools, no busybox.
+      All functionality is provided through the Qt6 GUI application.

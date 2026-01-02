@@ -23,9 +23,9 @@ FROM alpine:3.19
 COPY scripts/docker-install-packages.sh /tmp/
 RUN /tmp/docker-install-packages.sh
 
-# Alpine Linux includes BusyBox by default
-# BusyBox provides: shell (sh), networking (udhcpc, ip, ping, wget), and core utilities
-# This is verified by the test.sh script which shows BusyBox version and available applets
+# SparkOS Philosophy: No CLI tools, GUI-only experience
+# The init system is completely self-contained with no external dependencies
+# All functionality is provided through direct system calls in C
 
 # Create minimal rootfs structure
 COPY scripts/docker-setup-rootfs.sh /tmp/
