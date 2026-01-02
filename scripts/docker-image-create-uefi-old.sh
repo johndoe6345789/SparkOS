@@ -57,7 +57,15 @@ INITRD_PATH=$(find /kernel/boot -name "initrd.img-*" | head -1)
 # Copy kernel and initrd to staging
 echo "Copying kernel to staging..."
 cp $KERNEL_PATH /staging/esp/boot/vmlinuz
-if [ -f "$INITRD_PATH" ]; then cp $INITRD_PATH /staging/esp/boot/initrd.img; fi
+
+# Ensure initrd exists (required for booting)
+if [ ! -f "$INITRD_PATH" ]; then
+    echo "ERROR: initrd not found. The kernel requires an initrd to boot."
+    echo "Expected to find: initrd.img-* in /kernel/boot/"
+    exit 1
+fi
+echo "Copying initrd to staging..."
+cp $INITRD_PATH /staging/esp/boot/initrd.img
 
 # Create GRUB configuration
 printf '%s\n' \
@@ -66,6 +74,7 @@ printf '%s\n' \
     '' \
     'menuentry "SparkOS" {' \
     '    linux /boot/vmlinuz root=LABEL=SparkOS rw init=/sbin/init console=tty1 quiet' \
+    '    initrd /boot/initrd.img' \
     '}' \
     > /staging/esp/boot/grub/grub.cfg
 
@@ -115,11 +124,8 @@ echo "Copying bootloader files..."
 guestfish -a /output/sparkos.img -m /dev/sda1 <<EOF
 copy-in /staging/esp/EFI/BOOT/BOOTX64.EFI /EFI/BOOT/
 copy-in /staging/esp/boot/vmlinuz /boot/
+copy-in /staging/esp/boot/initrd.img /boot/
 EOF
-
-if [ -f "/staging/esp/boot/initrd.img" ]; then
-    guestfish -a /output/sparkos.img -m /dev/sda1 copy-in /staging/esp/boot/initrd.img /boot/
-fi
 
 guestfish -a /output/sparkos.img -m /dev/sda1 <<EOF
 copy-in /staging/esp/boot/grub/grub.cfg /boot/grub/
