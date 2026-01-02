@@ -23,6 +23,7 @@
 #include <errno.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <limits.h>
 
 static void signal_handler(int sig) {
     if (sig == SIGCHLD) {
@@ -81,6 +82,7 @@ static int init_network_interface(const char *ifname) {
     // Prepare interface request structure
     memset(&ifr, 0, sizeof(ifr));
     strncpy(ifr.ifr_name, ifname, IFNAMSIZ - 1);
+    ifr.ifr_name[IFNAMSIZ - 1] = '\0';  // Ensure null termination
     
     // Get current flags
     if (ioctl(sock, SIOCGIFFLAGS, &ifr) < 0) {
@@ -148,12 +150,17 @@ static int mount_fs(const char *source, const char *target, const char *fstype, 
  * No dependency on mkdir binary
  */
 static int mkdir_p(const char *path) {
-    char tmp[256];
+    char tmp[PATH_MAX];
     char *p = NULL;
     size_t len;
     
+    len = strlen(path);
+    if (len >= PATH_MAX) {
+        errno = ENAMETOOLONG;
+        return -1;
+    }
+    
     snprintf(tmp, sizeof(tmp), "%s", path);
-    len = strlen(tmp);
     if (tmp[len - 1] == '/')
         tmp[len - 1] = 0;
     

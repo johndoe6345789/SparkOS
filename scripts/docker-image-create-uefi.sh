@@ -65,7 +65,6 @@ chmod 755 /staging/root/sbin/init
 echo "sparkos" > /staging/root/etc/hostname
 echo "127.0.0.1   localhost" > /staging/root/etc/hosts
 echo "127.0.1.1   sparkos" >> /staging/root/etc/hosts
-echo "spark:x:1000:" >> /staging/root/etc/group
 
 # Copy README to root partition
 cp /build/config/image-readme.txt /staging/root/README.txt
