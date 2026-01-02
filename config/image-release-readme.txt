@@ -12,15 +12,16 @@ What's Included:
 ✓ EFI System Partition (ESP) with FAT32 filesystem
 ✓ GRUB UEFI bootloader
 ✓ Linux kernel
-✓ SparkOS init system
-✓ Busybox utilities
-✓ Basic FHS-compliant filesystem structure
+✓ SparkOS init system (self-contained, no dependencies)
+✓ Qt6 GUI application
+✓ Minimal filesystem structure
 
 Boot Support:
 ------------
 ✓ UEFI boot (x86_64 systems)
 ✓ Automatic boot after 3 seconds
-✓ Console on tty1
+✓ Direct boot to Qt6 GUI (no CLI)
+✓ Console on tty1 (for debugging only)
 
 Quick Start:
 -----------

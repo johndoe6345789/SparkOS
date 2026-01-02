@@ -90,7 +90,7 @@ Modern computing is inherently networked. Instead of treating networking as an a
 ### Planned Components
 
 1. **Qt6/QML GUI**
-   - Full-screen Wayland application
+   - Full-screen application
    - Android-like interface design
    - Desktop-oriented workflow
 
@@ -99,16 +99,10 @@ Modern computing is inherently networked. Instead of treating networking as an a
    - Minimal resource usage
    - Touch and mouse support
 
-3. **Spark CLI Tools (C++)**
-   - System management utilities
-   - Package management
-   - Network configuration (WiFi, VPN, etc.)
-   - GUI launcher
-
-4. **Bootstrap Utilities (Included)**
-   - Git for cloning spark CLI
-   - Sudo for proper privilege elevation
-   - Busybox for core system utilities and networking
+3. **Network Management**
+   - Qt6 NetworkManager integration
+   - WiFi configuration UI
+   - VPN and advanced networking UI
 
 ## Security Considerations
 
@@ -121,9 +115,9 @@ Modern computing is inherently networked. Instead of treating networking as an a
 ## Performance
 
 - Fast boot time (seconds, not minutes)
-- Low memory footprint (~50MB base system with busybox)
+- Low memory footprint (~20MB base init system)
 - No unnecessary background services
-- Efficient init system
+- Efficient init system (no external dependencies)
 
 ## Portability
 

@@ -42,8 +42,8 @@ Follow the instructions in README.md to create a complete bootable system.
 
 ## System Requirements
 
-- Linux system with kernel 3.x or later
-- Busybox for shell and utilities
+- Linux system with kernel 3.x or later with framebuffer support
+- Qt6 runtime libraries for GUI
 - For building: GCC compiler, Make
 
 ## Documentation

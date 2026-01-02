@@ -3,48 +3,6 @@ echo "SparkOS Docker Test Environment"
 echo "================================"
 echo ""
 
-# Verify BusyBox is present and working
-echo "Verifying BusyBox..."
-echo "-------------------"
-if command -v busybox >/dev/null 2>&1; then
-    echo "✓ BusyBox is installed"
-    echo ""
-    echo "BusyBox version:"
-    # Store version for reuse in summary
-    BUSYBOX_VERSION=$(busybox | head -n 1)
-    echo "$BUSYBOX_VERSION"
-    echo ""
-    echo "BusyBox location:"
-    which busybox
-    ls -lh "$(which busybox)"
-    echo ""
-    echo "Shell (/bin/sh) is BusyBox:"
-    ls -lh /bin/sh
-    if [ -L /bin/sh ]; then
-        echo "  → /bin/sh is a symlink to: \"$(readlink /bin/sh)\""
-    fi
-    echo ""
-    echo "Available BusyBox applets (sample):"
-    # Store applet list once to avoid redundant executions
-    APPLET_LIST=$(busybox --list)
-    echo "$APPLET_LIST" | head -n 20
-    echo "  ... and $(echo "$APPLET_LIST" | wc -l) total applets"
-    echo ""
-    echo "Networking applets (required for SparkOS):"
-    for cmd in udhcpc ip ifconfig ping wget; do
-        if echo "$APPLET_LIST" | grep -q "^${cmd}$"; then
-            echo "  ✓ $cmd"
-        else
-            echo "  ✗ $cmd (NOT FOUND)"
-        fi
-    done
-else
-    echo "✗ BusyBox not found!"
-    echo "  SparkOS requires BusyBox for shell and utilities"
-    exit 1
-fi
-
-echo ""
 echo "Verifying SparkOS init binary..."
 echo "--------------------------------"
 if [ -f /sparkos/rootfs/sbin/init ]; then
@@ -75,10 +33,13 @@ echo "✓ SparkOS is ready for testing!"
 echo "================================"
 echo ""
 echo "Summary:"
-echo "  - BusyBox: $BUSYBOX_VERSION"
-echo "  - Init: Custom SparkOS init system"
-echo "  - Shell: BusyBox sh (/bin/sh)"
-echo "  - Networking: BusyBox udhcpc, ip, ping, wget"
+echo "  - Init: Custom SparkOS init system (no external dependencies)"
+echo "  - Architecture: GUI-only, no CLI/shell"
+echo "  - Network: Direct C implementation via ioctl"
+echo "  - Philosophy: Pure GUI experience, network-first"
+echo ""
+echo "Note: SparkOS has no CLI tools (no busybox, no shell)"
+echo "      All functionality is provided through the Qt6 GUI"
 echo ""
 echo "To test the init system:"
-echo "  docker run --rm <image> /sparkos/rootfs/sbin/init --help"
+echo "  docker run --rm <image> /sparkos/rootfs/sbin/init"

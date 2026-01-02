@@ -61,24 +61,10 @@ mkdir -p /staging/root/{bin,sbin,etc,proc,sys,dev,tmp,usr/{bin,sbin,lib,lib64},v
 cp /build/init /staging/root/sbin/init
 chmod 755 /staging/root/sbin/init
 
-# Install busybox
-echo "Installing busybox..."
-cp /bin/busybox /staging/root/bin/busybox
-chmod 755 /staging/root/bin/busybox
-
-# Create busybox symlinks for essential commands
-for cmd in sh ls cat echo mount umount mkdir rm cp mv chmod chown ln ps kill; do
-    ln -sf busybox /staging/root/bin/$cmd
-done
-
 # Create system configuration files
 echo "sparkos" > /staging/root/etc/hostname
 echo "127.0.0.1   localhost" > /staging/root/etc/hosts
 echo "127.0.1.1   sparkos" >> /staging/root/etc/hosts
-echo "root:x:0:0:root:/root:/bin/sh" > /staging/root/etc/passwd
-echo "spark:x:1000:1000:SparkOS User:/home/spark:/bin/sh" >> /staging/root/etc/passwd
-echo "root:x:0:" > /staging/root/etc/group
-echo "spark:x:1000:" >> /staging/root/etc/group
 
 # Copy README to root partition
 cp /build/config/image-readme.txt /staging/root/README.txt

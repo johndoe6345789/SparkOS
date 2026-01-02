@@ -143,8 +143,8 @@ Build release artifacts without needing root or special tools:
 
 ## System Requirements
 
-- Linux system with kernel 3.x or later
-- Busybox for shell and utilities
+- Linux system with kernel 3.x or later with framebuffer support
+- Qt6 runtime libraries for GUI
 - For building: Docker or GCC compiler and Make
 
 ## Documentation
