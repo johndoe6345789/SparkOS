@@ -141,18 +141,14 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: sparkos-image-${{ github.sha }}
-          path: |
-            release/sparkos-image.zip
-            release/sparkos.img.gz
+          path: release/sparkos-image.zip
           retention-days: 90
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
-          files: |
-            release/sparkos-image.zip
-            release/sparkos.img.gz
+          files: release/sparkos-image.zip
           body: |
             # SparkOS UEFI-Bootable Disk Image Release ${{ github.ref_name }}
             
@@ -160,8 +156,7 @@ jobs:
             
             ## What's Included
             
-            - **sparkos-image.zip**: Complete package with image and README
-            - **sparkos.img.gz**: Compressed UEFI-bootable disk image (~1GB)
+            - **sparkos-image.zip**: Complete package with compressed disk image and README
             
             ## Features
             
@@ -177,8 +172,11 @@ jobs:
             ### Write to USB and Boot
             
             ```bash
-            # Download and decompress
-            wget https://github.com/johndoe6345789/SparkOS/releases/download/${{ github.ref_name }}/sparkos.img.gz
+            # Download and extract the package
+            wget https://github.com/johndoe6345789/SparkOS/releases/download/${{ github.ref_name }}/sparkos-image.zip
+            unzip sparkos-image.zip
+            
+            # Decompress the image
             gunzip sparkos.img.gz
             
             # Write to USB drive (Linux - BE CAREFUL!)
