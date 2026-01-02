@@ -43,23 +43,23 @@ fi
 echo "Kernel extracted successfully: $KERNEL_FILE"
 
 # Extract kernel version from the kernel filename
-KERNEL_VERSION=$(basename $KERNEL_FILE | sed 's/vmlinuz-//')
+KERNEL_VERSION=$(basename "$KERNEL_FILE" | sed 's/vmlinuz-//')
 echo "Kernel version: $KERNEL_VERSION"
 
 # Copy kernel modules to system location so mkinitramfs can find them
 echo "Copying kernel modules to system location..."
-if [ -d /kernel/lib/modules/${KERNEL_VERSION} ]; then
-    cp -r /kernel/lib/modules/${KERNEL_VERSION} /lib/modules/
+if [ -d "/kernel/lib/modules/${KERNEL_VERSION}" ]; then
+    cp -r "/kernel/lib/modules/${KERNEL_VERSION}" /lib/modules/
 else
     echo "WARNING: No modules found for kernel ${KERNEL_VERSION}"
 fi
 
 # Generate initrd using mkinitramfs
 echo "Generating initrd for kernel version $KERNEL_VERSION..."
-mkinitramfs -o /kernel/boot/initrd.img-${KERNEL_VERSION} ${KERNEL_VERSION}
+mkinitramfs -o "/kernel/boot/initrd.img-${KERNEL_VERSION}" "${KERNEL_VERSION}"
 
 # Verify initrd was created
-if [ ! -f /kernel/boot/initrd.img-${KERNEL_VERSION} ]; then
+if [ ! -f "/kernel/boot/initrd.img-${KERNEL_VERSION}" ]; then
     echo "ERROR: Failed to generate initrd"
     exit 1
 fi
