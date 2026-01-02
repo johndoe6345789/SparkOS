@@ -26,14 +26,17 @@ echo "SparkOS Boot Menu - Starting in $timeout seconds..."
 menuentry "SparkOS" {
     echo "Loading SparkOS kernel..."
     linux /boot/vmlinuz root=LABEL=@ROOT_LABEL@ ro init=/sbin/init console=tty0 console=ttyS0,115200n8
+    initrd /boot/initrd.img
 }
 
 menuentry "SparkOS (Verbose Mode)" {
     echo "Loading SparkOS kernel in verbose mode..."
     linux /boot/vmlinuz root=LABEL=@ROOT_LABEL@ ro init=/sbin/init console=tty0 console=ttyS0,115200n8 debug loglevel=7
+    initrd /boot/initrd.img
 }
 
 menuentry "SparkOS (Recovery Mode)" {
     echo "Loading SparkOS kernel in recovery mode..."
     linux /boot/vmlinuz root=LABEL=@ROOT_LABEL@ rw init=/bin/sh console=tty0 console=ttyS0,115200n8
+    initrd /boot/initrd.img
 }
