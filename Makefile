@@ -7,16 +7,18 @@ DESTDIR = rootfs
 IMAGE = sparkos.img
 IMAGE_SIZE = 512M
 
-.PHONY: all clean init image image-docker help install docker-release
+.PHONY: all clean init gui image image-docker help install docker-release
 
-all: init
+all: init gui
 
 help:
 	@echo "SparkOS Build System"
 	@echo "===================="
 	@echo "Targets:"
 	@echo "  make init           - Build the init system"
-	@echo "  make install        - Install init to rootfs"
+	@echo "  make gui            - Build the Qt6 GUI application"
+	@echo "  make all            - Build both init and GUI (default)"
+	@echo "  make install        - Install init and GUI to rootfs"
 	@echo "  make image          - Create bootable dd-able image (requires root)"
 	@echo "  make image-docker   - Create bootable image using Docker (no root required)"
 	@echo "  make docker-release - Build release package using Docker (no root required)"
@@ -34,10 +36,20 @@ init: src/init.c
 	$(CC) $(CFLAGS) -o init src/init.c
 	@echo "Init system built successfully: ./init"
 
-install: init
+gui:
+	@echo "Building SparkOS Qt6 GUI application..."
+	@mkdir -p build/gui
+	@cd build/gui && cmake ../../src/qt6-app -DCMAKE_INSTALL_PREFIX=$(DESTDIR)/usr
+	@cd build/gui && $(MAKE)
+	@echo "Qt6 GUI application built successfully: build/gui/sparkos-gui"
+
+install: init gui
 	@echo "Installing init to rootfs..."
 	install -D -m 755 init $(DESTDIR)/sbin/init
 	@echo "Init installed to $(DESTDIR)/sbin/init"
+	@echo "Installing Qt6 GUI application to rootfs..."
+	@cd build/gui && $(MAKE) install
+	@echo "GUI application installed to $(DESTDIR)/usr/bin/sparkos-gui"
 
 image: install
 	@echo "Creating bootable image..."

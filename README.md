@@ -1,16 +1,46 @@
 # SparkOS
 
-A minimal Linux distribution designed for simplicity and portability. SparkOS features:
+A revolutionary operating system that ditches Unix conventions for a modern, network-first approach. SparkOS features:
 
-- **Minimal footprint**: Barebones Linux system with busybox shell
+- **Direct Kernel Interface**: Qt6 GUI communicates directly with Linux kernel, bypassing Unix layers
+- **Linux Driver Layer**: All hardware abstraction handled by Linux kernel drivers
+- **No Unix User System**: No users, groups, passwords, or authentication - direct boot to GUI
+- **Network-First Architecture**: Built around networking as the primary paradigm
+- **Qt6 Full-Screen GUI**: Modern graphical interface from boot
+- **Minimal footprint**: Lean system with only essential components
 - **Portable**: dd-able disk image for USB flash drives
-- **Custom init**: Lightweight C init system
-- **Future-ready**: Designed to support Qt6/QML GUI and Wayland
-- **Root elevation**: Uses sudo for privilege management
-- **Bootstrap networking**: Wired networking with DHCP for initial setup
-- Minimal installation by default: kernel, init system, busybox, git, and sudo
-- DNS configured with fallback to public DNS servers (8.8.8.8, 1.1.1.1)
-- WiFi and advanced networking configured later via spark CLI
+- **Custom init**: Lightweight C init system that launches GUI directly
+- **Immutable base**: Read-only root filesystem with overlay for runtime data
+
+## Architecture
+
+```
+┌─────────────────────────────────────┐
+│      Qt6 GUI Application            │
+│   (Direct Framebuffer Rendering)    │
+└─────────────────────────────────────┘
+                 ↕
+┌─────────────────────────────────────┐
+│         Linux Kernel                │
+│  • Framebuffer (/dev/fb0)           │
+│  • Input devices (/dev/input/*)     │
+│  • Network stack                    │
+│  • All hardware drivers             │
+└─────────────────────────────────────┘
+                 ↕
+┌─────────────────────────────────────┐
+│          Hardware                   │
+│  • GPU, Display, Input devices      │
+│  • Network adapters                 │
+│  • Storage, etc.                    │
+└─────────────────────────────────────┘
+```
+
+**Key Design Principles:**
+- Linux kernel provides complete hardware abstraction and driver support
+- Qt6 interfaces directly with kernel through /dev, /proc, /sys interfaces
+- No intermediate Unix layers (no systemd, no user management, no shells by default)
+- Network-first: networking capabilities exposed directly to GUI
 
 ## MVP Status
 
