@@ -12,17 +12,43 @@
 #include <errno.h>
 #include <string.h>
 
-// Default user configuration
-#define SPARK_UID 1000
-#define SPARK_GID 1000
-#define SPARK_HOME "/home/spark"
-#define SPARK_USER "spark"
-
 static void signal_handler(int sig) {
     if (sig == SIGCHLD) {
         // Reap zombie processes
         while (waitpid(-1, NULL, WNOHANG) > 0);
     }
+}
+
+static void spawn_gui() {
+    pid_t pid = fork();
+    
+    if (pid < 0) {
+        perror("fork failed");
+        return;
+    }
+    
+    if (pid == 0) {
+        // Child process - exec Qt6 GUI application as root (no user switching)
+        
+        char *argv[] = {"/usr/bin/sparkos-gui", NULL};
+        char *envp[] = {
+            "HOME=/root",
+            "PATH=/bin:/sbin:/usr/bin:/usr/sbin",
+            "QT_QPA_PLATFORM=linuxfb:fb=/dev/fb0",
+            "QT_QPA_FB_FORCE_FULLSCREEN=1",
+            "QT_QPA_FONTDIR=/usr/share/fonts",
+            NULL
+        };
+        
+        execve("/usr/bin/sparkos-gui", argv, envp);
+        
+        perror("failed to exec GUI application");
+        exit(1);
+    }
+    
+    // Parent process - wait for GUI to exit
+    int status;
+    waitpid(pid, &status, 0);
 }
 
 static void spawn_shell() {
@@ -34,33 +60,16 @@ static void spawn_shell() {
     }
     
     if (pid == 0) {
-        // Child process - exec shell as spark user
-        
-        // Set user and group IDs to spark user
-        if (setgid(SPARK_GID) != 0) {
-            perror("setgid failed");
-            exit(1);
-        }
-        if (setuid(SPARK_UID) != 0) {
-            perror("setuid failed");
-            exit(1);
-        }
+        // Child process - exec shell as root (fallback only)
         
         char *argv[] = {"/bin/sh", "-l", NULL};
         char *envp[] = {
-            "HOME=" SPARK_HOME,
+            "HOME=/root",
             "PATH=/bin:/sbin:/usr/bin:/usr/sbin",
             "TERM=linux",
-            "PS1=SparkOS$ ",
-            "USER=" SPARK_USER,
-            "LOGNAME=" SPARK_USER,
+            "PS1=SparkOS# ",
             NULL
         };
-        
-        // Change to home directory
-        if (chdir(SPARK_HOME) != 0) {
-            perror("chdir failed");
-        }
         
         execve("/bin/sh", argv, envp);
         
@@ -107,22 +116,12 @@ int main(int argc, char *argv[]) {
     if (system("mkdir -p /tmp/overlay/var-upper /tmp/overlay/var-work 2>/dev/null") != 0) {
         fprintf(stderr, "Warning: Failed to create overlay directories for /var\n");
     }
-    if (system("mkdir -p /tmp/overlay/home-upper /tmp/overlay/home-work 2>/dev/null") != 0) {
-        fprintf(stderr, "Warning: Failed to create overlay directories for /home/spark\n");
-    }
     
     // Mount overlay on /var for logs and runtime data
     if (system("mount -t overlay overlay -o lowerdir=/var,upperdir=/tmp/overlay/var-upper,workdir=/tmp/overlay/var-work /var 2>/dev/null") != 0) {
         fprintf(stderr, "Warning: Failed to mount overlay on /var - system may be read-only\n");
     } else {
         printf("Overlay filesystem mounted on /var (base OS is immutable)\n");
-    }
-    
-    // Mount overlay on /home/spark for user data
-    if (system("mount -t overlay overlay -o lowerdir=/home/spark,upperdir=/tmp/overlay/home-upper,workdir=/tmp/overlay/home-work /home/spark 2>/dev/null") != 0) {
-        fprintf(stderr, "Warning: Failed to mount overlay on /home/spark - home directory may be read-only\n");
-    } else {
-        printf("Overlay filesystem mounted on /home/spark (writable user home)\n");
     }
     
     // Mount tmpfs on /run for runtime data
@@ -138,18 +137,20 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "Warning: Network initialization failed - check network interface availability\n");
     }
     
-    printf("Starting shell...\n");
+    printf("Starting Qt6 GUI application...\n");
     printf("Welcome to SparkOS!\n");
     printf("===================\n");
     printf("Base OS: Read-only (immutable)\n");
-    printf("Writable: /tmp, /var (overlay), /home/spark (overlay), /run\n\n");
+    printf("Writable: /tmp, /var (overlay), /run\n");
+    printf("Mode: Qt6 GUI (Network-First Architecture)\n");
+    printf("No Users/Authentication - Direct Boot to GUI\n\n");
     
-    // Main loop - keep respawning shell
+    // Main loop - keep respawning GUI application
     while (1) {
-        spawn_shell();
+        spawn_gui();
         
-        // If shell exits, ask if user wants to reboot
-        printf("\nShell exited. Press Ctrl+Alt+Del to reboot or wait for new shell...\n");
+        // If GUI exits, respawn after a short delay
+        printf("\nGUI application exited. Restarting in 2 seconds...\n");
         sleep(2);
     }
     

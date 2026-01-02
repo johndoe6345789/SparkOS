@@ -2,121 +2,88 @@
 
 ## Overview
 
-SparkOS is designed as a minimal Linux distribution with a custom init system and a modular architecture that allows for future expansion.
+SparkOS is a revolutionary operating system that uses the Linux kernel for hardware abstraction but ditches traditional Unix conventions. Instead of shells, users, and Unix utilities, SparkOS boots directly into a Qt6 GUI that interfaces with the kernel through standard Linux APIs.
 
-## System Components
+## Core Philosophy
 
-### 1. Init System (`/sbin/init`)
+1. **No Unix Baggage**: No user/group system, no shells, no Unix utilities by default
+2. **Direct Kernel Interface**: GUI communicates directly with Linux kernel
+3. **Network-First**: Networking is a primary interface, not an afterthought
+4. **GUI-Only**: No CLI unless explicitly needed for debugging
+5. **Linux for Drivers**: Leverage Linux's excellent hardware support
 
-The init system is the first process started by the kernel (PID 1). It is responsible for:
-
-- **Mounting filesystems**: proc, sys, dev, tmp
-- **Network initialization**: Bringing up wired networking via DHCP
-- **Process management**: Spawning and respawning the shell
-- **Signal handling**: Reaping zombie processes
-- **System initialization**: Setting up the initial environment
-
-**Implementation**: `src/init.c`
-- Written in C for minimal overhead
-- Statically linked for independence
-- ~100 lines of clean, well-documented code
-
-### 2. Root Filesystem
-
-Follows the Filesystem Hierarchy Standard (FHS):
+## System Architecture
 
 ```
-/
-├── bin/          Essential user binaries (busybox with symlinks)
-├── sbin/         System binaries (init, mount, etc.)
-├── etc/          System configuration files
-├── proc/         Kernel process information (virtual)
-├── sys/          Kernel system information (virtual)
-├── dev/          Device files (virtual)
-├── tmp/          Temporary files
-├── usr/
-│   ├── bin/      Non-essential user binaries
-│   ├── sbin/     Non-essential system binaries
-│   ├── lib/      Libraries for /usr/bin and /usr/sbin
-│   └── lib64/    64-bit libraries
-├── var/          Variable data (logs, caches)
-├── root/         Root user home directory
-└── home/         User home directories
-```
+Boot Sequence:
+Hardware → UEFI/BIOS → GRUB → Linux Kernel → init (PID 1) → Qt6 GUI
 
-### 3. Build System
-
-**Makefile**: Main build orchestration
-- `make init`: Compile init system
-- `make install`: Install init to rootfs
-- `make image`: Create bootable image (requires root)
-- `make clean`: Clean build artifacts
-
-**Scripts**:
-- `scripts/build.sh`: Quick build for development
-- `scripts/setup_rootfs.sh`: Create rootfs structure
-- `scripts/create_image.sh`: Create dd-able disk image
-
-### 4. Boot Process
-
-```
-Hardware Power-On
-    ↓
-BIOS/UEFI
-    ↓
-Bootloader (syslinux)
-    ↓
-Linux Kernel (vmlinuz)
-    ↓
-Init System (/sbin/init) [PID 1]
-    ↓
-Mount filesystems
-    ↓
-Initialize network (/sbin/init-network)
-    ↓
-Spawn busybox sh shell
-    ↓
-User interaction
+Stack Layers:
+┌──────────────────────────────────────────┐
+│         Qt6 GUI Application              │ ← User Interface
+│    (sparkos-gui executable)              │
+├──────────────────────────────────────────┤
+│      Custom Init System (PID 1)          │ ← Process Manager
+│    • Mounts filesystems                  │
+│    • Spawns/respawns GUI                 │
+│    • Reaps zombie processes              │
+├──────────────────────────────────────────┤
+│          Linux Kernel                    │ ← Hardware Abstraction
+│    • All device drivers                  │
+│    • Framebuffer driver                  │
+│    • Input device drivers                │
+│    • Network stack & drivers             │
+│    • File system support                 │
+├──────────────────────────────────────────┤
+│            Hardware                      │
+│    • Display, GPU, Input                 │
+│    • Network adapters                    │
+│    • Storage devices                     │
+└──────────────────────────────────────────┘
 ```
 
 ## Design Decisions
 
-### Why Custom Init?
+### Why Ditch Unix Conventions?
 
-- **Simplicity**: No dependencies, easy to understand
-- **Control**: Full control over boot process
-- **Size**: Minimal footprint (<1MB statically linked)
-- **Learning**: Educational value for OS development
+Traditional Unix systems were designed for multi-user, time-sharing mainframes in the 1970s. Modern personal computing and embedded systems have different needs:
 
-### Why Static Linking?
+- **Single User**: Most devices have one user - authentication overhead is unnecessary
+- **GUI Primary**: Modern users expect graphical interfaces, not command lines
+- **Network Central**: Modern computing is network-centric, not file-centric
+- **Direct Access**: Applications should talk directly to kernel, not through layers of abstraction
 
-- **Independence**: No library dependencies
-- **Portability**: Works on any Linux system
-- **Reliability**: No missing library issues
+### Why Keep Linux Kernel?
 
-### Why Busybox?
+- **Hardware Support**: Linux has exceptional driver support for modern hardware
+- **Driver Abstraction**: Well-tested, stable hardware abstraction layer
+- **Network Stack**: Robust, high-performance networking
+- **File Systems**: Mature support for various filesystems
+- **Security**: SELinux, namespaces, cgroups for isolation
+- **Community**: Active development and security updates
 
-- **Minimal**: Single binary provides dozens of utilities
-- **Small footprint**: Typically <1MB for full feature set
-- **Efficient**: Less memory and storage overhead than full GNU coreutils
-- **Standard**: De facto standard for embedded Linux systems
-- **Networking**: Includes DHCP client (udhcpc), ping, wget, and network tools
+### Why Qt6 GUI?
 
-### Networking Strategy
+- **Cross-Platform**: Qt works on many platforms (future portability)
+- **Framebuffer Support**: Can render directly to Linux framebuffer without X11/Wayland
+- **Modern**: Native look and feel, hardware acceleration support
+- **Complete**: Rich widget set, networking APIs, file I/O
+- **Performant**: Efficient rendering and event handling
 
-SparkOS uses a two-phase networking approach:
+### Why No X11/Wayland?
 
-**Phase 1: Bootstrap (Wired Only)**
-- Wired networking configured via DHCP
-- Automatic interface detection (eth0, enp0s3, etc.)
-- DNS fallback to public servers (8.8.8.8, 1.1.1.1)
-- Enables git clone to install spark CLI
+- **Direct Rendering**: Qt can render directly to framebuffer (/dev/fb0)
+- **Less Overhead**: No display server running in between
+- **Simpler**: Fewer processes, less memory usage
+- **Embedded-Friendly**: Same approach used in embedded systems
 
-**Phase 2: Full Configuration (via spark CLI)**
-- WiFi configuration
-- Advanced networking features
-- Custom DNS settings
-- Network profiles
+### Why Network-First?
+
+Modern computing is inherently networked. Instead of treating networking as an add-on:
+- Network APIs exposed directly to GUI
+- Cloud storage as primary storage paradigm
+- Web technologies integrated (future: embedded browser)
+- Real-time updates and communication built-in
 
 ## Future Architecture
 

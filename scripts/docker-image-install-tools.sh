@@ -6,7 +6,14 @@ set -e
 apt-get update
 apt-get install -y \
     gcc \
+    g++ \
     make \
+    cmake \
+    qt6-base-dev \
+    qt6-base-dev-tools \
+    libqt6core6 \
+    libqt6gui6 \
+    libqt6widgets6 \
     dosfstools \
     mtools \
     e2fsprogs \
