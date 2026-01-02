@@ -124,11 +124,8 @@ echo "Copying bootloader files..."
 guestfish -a /output/sparkos.img -m /dev/sda1 <<EOF
 copy-in /staging/esp/EFI/BOOT/BOOTX64.EFI /EFI/BOOT/
 copy-in /staging/esp/boot/vmlinuz /boot/
+copy-in /staging/esp/boot/initrd.img /boot/
 EOF
-
-if [ -f "/staging/esp/boot/initrd.img" ]; then
-    guestfish -a /output/sparkos.img -m /dev/sda1 copy-in /staging/esp/boot/initrd.img /boot/
-fi
 
 guestfish -a /output/sparkos.img -m /dev/sda1 <<EOF
 copy-in /staging/esp/boot/grub/grub.cfg /boot/grub/
