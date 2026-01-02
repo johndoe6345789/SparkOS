@@ -22,7 +22,6 @@ apt-get install -y \
     grub-efi-amd64-bin \
     grub-common \
     wget \
-    busybox-static \
     kmod \
     udev
 rm -rf /var/lib/apt/lists/*

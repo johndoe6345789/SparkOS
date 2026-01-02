@@ -45,12 +45,12 @@ A revolutionary operating system that ditches Unix conventions for a modern, net
 ## MVP Status
 
 The current MVP provides:
-- ✅ Custom init system written in C
-- ✅ Working busybox shell environment
+- ✅ Custom init system written in C (no external dependencies)
+- ✅ GUI-only architecture (no CLI/shell)
 - ✅ dd-able AMD64 image creation scripts
 - ✅ Minimal root filesystem structure
 - ✅ Build system (Makefile)
-- ✅ Wired networking configuration with DHCP
+- ✅ Direct network initialization via C ioctl
 - ✅ DNS configuration with public fallback servers
 - ✅ Docker container for testing
 - ✅ Automated builds and publishing to GHCR
@@ -102,8 +102,8 @@ The UEFI-bootable disk image includes:
 - ✅ **UEFI boot support** with GRUB bootloader
 - ✅ **GPT partition table** with ESP (EFI System Partition)
 - ✅ **Linux kernel** ready to boot
-- ✅ **SparkOS init system** and busybox utilities
-- ✅ **Ready to boot** - No additional setup required
+- ✅ **SparkOS init system** (completely self-contained, no external dependencies)
+- ✅ **Ready to boot** - Direct to Qt6 GUI, no CLI
 
 ### Using Pre-built Binary Package
 
@@ -156,14 +156,12 @@ The Docker image includes:
 - Pre-built init system binary
 - Minimal root filesystem structure
 - Test environment for validation
-- **BusyBox shell and utilities**: Alpine Linux base provides BusyBox (verified on startup)
+- **No CLI tools**: Pure GUI-only architecture
 - **Multi-architecture support**: Available for both AMD64 (x86_64) and ARM64 (aarch64) architectures
 
 When you run the Docker image, it automatically verifies:
-- BusyBox version and installation
-- Available BusyBox applets (sh, ls, cat, etc.)
-- Required networking tools (udhcpc, ip, ping, wget)
-- Custom init system binary
+- Custom init system binary (statically linked, no dependencies)
+- Root filesystem structure
 
 Images are automatically built and published to [GitHub Container Registry](https://github.com/johndoe6345789/SparkOS/pkgs/container/sparkos) on every push to main branch.
 
@@ -220,7 +218,7 @@ This creates a complete UEFI-bootable image with:
 - EFI System Partition (ESP) with FAT32
 - GRUB UEFI bootloader
 - Linux kernel
-- SparkOS init system and busybox
+- SparkOS init system (no external dependencies)
 
 **Traditional Method (Requires Root):**
 
@@ -286,31 +284,31 @@ SparkOS/
 ### Init System
 
 SparkOS uses a custom init system (`/sbin/init`) that:
-- Mounts essential filesystems (proc, sys, dev, tmp)
-- Initializes wired networking via DHCP
-- Spawns a busybox sh login shell
+- Mounts essential filesystems (proc, sys, dev, tmp) via direct system calls
+- Initializes network interfaces via direct C ioctl calls
+- Spawns Qt6 GUI application directly
 - Handles process reaping
-- Respawns shell on exit
+- Respawns GUI on exit
+- **No external dependencies**: Completely self-contained
 
 ### Root Filesystem
 
-Follows the Filesystem Hierarchy Standard (FHS):
-- `/bin`, `/sbin`: Essential binaries
-- `/etc`: System configuration
+Minimal filesystem structure for GUI-only OS:
+- `/sbin`: Init binary only
+- `/etc`: Minimal system configuration
 - `/proc`, `/sys`, `/dev`: Kernel interfaces
 - `/tmp`: Temporary files
-- `/usr`: User programs and libraries
-- `/var`: Variable data
-- `/root`: Root user home
-- `/home`: User home directories
+- `/usr`: Qt6 GUI application and libraries
+- `/var`: Variable data (overlay mount)
+- `/root`: Root home
 
 ### Networking
 
-SparkOS provides wired networking for initial bootstrap:
-- **DHCP**: Automatic IP configuration via busybox udhcpc
+SparkOS provides network initialization through direct C code:
+- **Interface Management**: Direct ioctl calls to bring up network interfaces
 - **DNS**: Fallback to public DNS servers (8.8.8.8, 8.8.4.4, 1.1.1.1, 1.0.0.1)
-- **Interface**: Primary wired interface (eth0) configured automatically
-- **WiFi**: Will be configured later via spark CLI after installation
+- **DHCP**: Managed by Qt6 NetworkManager in GUI
+- **WiFi**: Configured through Qt6 GUI
 
 ## Development
 
@@ -418,63 +416,31 @@ make clean
 make help
 ```
 
-### Adding Binaries to Root Filesystem
+### Adding Components to Root Filesystem
 
-To create a fully functional system, you need to populate the rootfs with binaries:
-
-```bash
-# Required binaries (statically linked recommended)
-# 1. Busybox - provides shell and most utilities including networking
-cp /path/to/busybox rootfs/bin/
-
-# 2. Git - for cloning spark CLI
-cp /path/to/git rootfs/bin/
-# Note: If git is dynamically linked, you'll need to copy its libraries too
-
-# 3. Sudo - for privilege elevation
-cp /path/to/sudo rootfs/bin/
-
-# Create busybox symlinks for common utilities
-cd rootfs/bin
-for cmd in sh ls cat mkdir rm cp mount umount chmod chown ln \
-           ip ifconfig ping wget udhcpc; do
-    ln -sf busybox $cmd
-done
-cd ../..
-
-# If using dynamically linked binaries, copy required libraries
-ldd rootfs/bin/busybox  # Check dependencies
-ldd rootfs/bin/git      # Check dependencies
-ldd rootfs/bin/sudo     # Check dependencies
-# Copy libraries to rootfs/lib or rootfs/lib64 as needed
-```
-
-### Testing Network Connectivity
-
-Once booted, you can test the network:
+To create a fully functional bootable system:
 
 ```bash
-# Check interface status
-ip addr show
+# Required components:
+# 1. Qt6 GUI application - Build with make gui
+# 2. Qt6 libraries - Copy Qt6 runtime libraries to rootfs/usr/lib
+# 3. Linux kernel - Include kernel binary for bootloader
 
-# Test DNS resolution
-ping -c 3 google.com
+# Qt6 GUI is built and installed via:
+make gui
+make install  # Installs to rootfs/usr/bin/sparkos-gui
 
-# Test direct IP connectivity
-ping -c 3 8.8.8.8
-
-# Download a file
-wget http://example.com/file
+# Note: Qt6 must be compiled with linuxfb support for framebuffer rendering
 ```
 
 ## Future Roadmap
 
-- [ ] Qt6/QML full screen GUI
+- [ ] Qt6/QML full screen GUI implementation
 - [ ] Wayland compositor integration
-- [ ] C++ CLI tools (spark command)
-- [ ] Package management via spark CLI
-- [ ] WiFi configuration via spark CLI
-- [ ] Advanced network configuration
+- [ ] Network management via Qt6 NetworkManager
+- [ ] WiFi configuration through GUI
+- [ ] Advanced network configuration UI
+- [ ] System settings and configuration UI
 
 ## Contributing
 
@@ -482,6 +448,7 @@ Contributions are welcome! This is an early-stage project focused on:
 1. Maintaining minimal footprint
 2. Clean, readable code
 3. Proper documentation
+4. GUI-only architecture (no CLI/shell)
 
 ## License
 
@@ -490,26 +457,26 @@ See LICENSE file for details.
 ## Notes
 
 This is an MVP implementation. The system currently provides:
-- Basic init system with network initialization
-- Shell environment
+- Custom init system with direct network initialization
+- GUI-only architecture (no CLI/shell)
 - Build infrastructure
 - Image creation tooling
-- Wired networking configuration
+- Self-contained init with no external dependencies
 
 To create a fully bootable system, you'll also need:
-- Linux kernel binary (`vmlinuz`)
-- Essential system binaries: busybox, git, sudo
-- Required libraries (if using dynamically linked binaries)
+- Linux kernel binary (`vmlinuz`) with framebuffer and networking support
+- Qt6 GUI application (sparkos-gui)
+- Qt6 runtime libraries
 - Bootloader installation (handled by scripts)
 
 Minimum System Requirements:
-- Kernel: Linux kernel with networking support
-- Init: Custom SparkOS init (included)
-- Shell: Busybox with networking utilities (udhcpc, ip/ifconfig, ping, wget)
-- VCS: Git (for installing spark CLI)
-- Security: Sudo (for privilege elevation)
+- Kernel: Linux kernel with framebuffer and networking support
+- Init: Custom SparkOS init (included, no dependencies)
+- GUI: Qt6 application with linuxfb platform support
+- Libraries: Qt6 runtime libraries for GUI
 
-After bootstrap:
-1. Use wired network to clone spark CLI via git
-2. Use spark CLI to configure WiFi and other system features
-3. Install additional packages as needed via spark CLI
+System Philosophy:
+- **No CLI tools**: Everything through Qt6 GUI
+- **No shell**: Direct kernel-to-GUI communication
+- **No busybox**: Self-contained init system
+- **Network-first**: Networking integrated into GUI
