@@ -14,6 +14,8 @@ apt-get install -y \
     libqt6core6 \
     libqt6gui6 \
     libqt6widgets6 \
+    libgl1-mesa-dev \
+    libglu1-mesa-dev \
     dosfstools \
     mtools \
     e2fsprogs \
