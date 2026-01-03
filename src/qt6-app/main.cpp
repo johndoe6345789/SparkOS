@@ -14,6 +14,8 @@
 #include <QStyle>
 #include <QProcess>
 #include <QTextEdit>
+#include <QFile>
+#include <QIODevice>
 
 class SparkOSMainWindow : public QWidget {
     Q_OBJECT
